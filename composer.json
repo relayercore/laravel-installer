@@ -1,0 +1,57 @@
+{
+    "name": "relayercore/laravel-installer",
+    "description": "A beautiful, reusable web-based installer for Laravel applications",
+    "type": "library",
+    "keywords": [
+        "laravel",
+        "installer",
+        "wizard",
+        "setup",
+        "codecanyon",
+        "livewire"
+    ],
+    "license": "MIT",
+    "homepage": "https://github.com/relayercore/laravel-installer",
+    "support": {
+        "issues": "https://github.com/relayercore/laravel-installer/issues",
+        "source": "https://github.com/relayercore/laravel-installer"
+    },
+    "authors": [
+        {
+            "name": "RelayerCore",
+            "email": "hello@relayercore.com",
+            "homepage": "https://relayercore.com"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^10.0|^11.0",
+        "livewire/livewire": "^3.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0",
+        "phpunit/phpunit": "^10.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "RelayerCore\\LaravelInstaller\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "RelayerCore\\LaravelInstaller\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "RelayerCore\\LaravelInstaller\\InstallerServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
