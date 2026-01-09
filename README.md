@@ -1,5 +1,10 @@
 # Laravel Installer
 
+[![Tests](https://github.com/relayercore/laravel-installer/actions/workflows/tests.yml/badge.svg)](https://github.com/relayercore/laravel-installer/actions/workflows/tests.yml)
+[![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://php.net/)
+[![Laravel Version](https://img.shields.io/badge/laravel-10%20%7C%2011%20%7C%2012-FF2D20.svg)](https://laravel.com)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A beautiful, reusable web-based installer for Laravel applications. Perfect for CodeCanyon products and commercial Laravel apps.
 
 ## Features
