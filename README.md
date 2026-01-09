@@ -10,7 +10,7 @@ A beautiful, reusable web-based installer for Laravel applications. Perfect for 
 - 🗄️ Database configuration & testing
 - 👤 Admin account creation
 - 🔌 Custom step support
-- 🎯 Works with Laravel 10 & 11
+- 🎯 Works with Laravel 10, 11 & 12
 
 ## Installation
 
