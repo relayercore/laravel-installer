@@ -28,18 +28,9 @@
         "illuminate/support": "^10.0|^11.0|^12.0",
         "livewire/livewire": "^3.0"
     },
-    "require-dev": {
-        "orchestra/testbench": "^9.0",
-        "phpunit/phpunit": "^10.0"
-    },
     "autoload": {
         "psr-4": {
             "RelayerCore\\LaravelInstaller\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "RelayerCore\\LaravelInstaller\\Tests\\": "tests/"
         }
     },
     "extra": {
