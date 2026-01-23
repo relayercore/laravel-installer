@@ -40,7 +40,10 @@ class Installer extends Component
     
     public string $dbPassword = '';
     
+    // Raw PDO/database error (for technical details)
     public string $dbError = '';
+    // Human-friendly error summary for non-technical users
+    public string $dbFriendlyError = '';
     public bool $dbConnected = false;
     
     // Admin
@@ -61,6 +64,10 @@ class Installer extends Component
     public array $installLog = [];
     public bool $installComplete = false;
     public string $installError = '';
+    public int $installProgress = 0;
+
+    #[Rule('nullable|boolean')]
+    public bool $loadDemoData = false;
 
     public function mount()
     {
@@ -118,6 +125,7 @@ class Installer extends Component
     public function testConnection(): void
     {
         $this->dbError = '';
+        $this->dbFriendlyError = '';
         $this->dbConnected = false;
         
         // Sanitize database name to prevent SQL injection
@@ -138,6 +146,7 @@ class Installer extends Component
             $this->dbConnected = true;
         } catch (\PDOException $e) {
             $this->dbError = $e->getMessage();
+            $this->dbFriendlyError = $this->humanizeDbError($e->getMessage());
         }
     }
 
@@ -148,6 +157,33 @@ class Installer extends Component
     protected function sanitizeDatabaseName(string $name): string
     {
         return preg_replace('/[^a-zA-Z0-9_]/', '', $name);
+    }
+
+    /**
+     * Create a human-friendly error message from a raw PDO error string.
+     */
+    protected function humanizeDbError(string $message): string
+    {
+        $lower = strtolower($message);
+
+        if (str_contains($lower, 'access denied')) {
+            return 'Could not connect to the database: please check the database username and password.';
+        }
+
+        if (str_contains($lower, 'unknown database')) {
+            return 'The database name appears to be incorrect or the user has no permission to access it.';
+        }
+
+        if (str_contains($lower, 'could not find driver') || str_contains($lower, 'driver not found')) {
+            return 'The required database driver is missing on this server. Ask your hosting provider to enable the PDO extension for your database type.';
+        }
+
+        if (str_contains($lower, 'connection refused') || str_contains($lower, 'no such file or directory')) {
+            return 'Unable to reach the database server. Please verify the host and port or contact your hosting provider.';
+        }
+
+        // Fallback generic message
+        return 'We could not connect to the database with the details you provided. Please double-check them or contact your hosting provider.';
     }
 
     /**
@@ -165,7 +201,7 @@ class Installer extends Component
         return $value;
     }
 
-    public function install(): void
+    public function installStep1_Env(): void
     {
         $this->validate([
             'adminName' => 'required|string|max:255',
@@ -177,23 +213,72 @@ class Installer extends Component
         $this->installing = true;
         $this->installLog = [];
         $this->installError = '';
+        $this->installProgress = 5;
         
         try {
             $this->log('Updating environment configuration...');
             $this->updateEnv();
+            $this->installProgress = 20;
             
-            $this->log('Clearing configuration cache...');
-            Artisan::call('config:clear');
+            // Config clearing removed to prevent server restart issues
             
+        } catch (\Exception $e) {
+            // Capture error for display but avoid crashing the Livewire component
+            $this->installError = $e->getMessage();
+            $this->installing = false;
+            $this->log('Installation error: ' . $e->getMessage());
+        }
+    }
+
+    public function installStep2_Migrate(): void
+    {
+        // Preventing timeout or memory issues during migration
+        ini_set('memory_limit', '-1');
+        set_time_limit(300);
+
+        try {
+            $this->installProgress = 30;
             $this->log('Running database migrations...');
             $this->configureDatabase();
             Artisan::call('migrate', ['--force' => true]);
+            
+            if ($this->loadDemoData) {
+                $this->log('Loading demo data...');
+                $seederClass = config('installer.seeder', 'DatabaseSeeder');
+                Artisan::call('db:seed', ['--class' => $seederClass, '--force' => true]);
+                $this->log('Demo data loaded.');
+            }
+
+            $this->installProgress = 60;
             $this->log('Migrations completed.');
             
+        } catch (\Exception $e) {
+            $this->installError = $e->getMessage();
+            $this->installing = false;
+            $this->log('Migration error: ' . $e->getMessage());
+        }
+    }
+
+    public function installStep3_Admin(): void
+    {
+        try {
+            $this->installProgress = 70;
+            $this->configureDatabase();
             $this->log('Creating admin account...');
             $this->createAdminUser();
+            $this->installProgress = 85;
             $this->log('Admin account created.');
             
+        } catch (\Exception $e) {
+            $this->installError = $e->getMessage();
+            $this->installing = false;
+            $this->log('Admin creation error: ' . $e->getMessage());
+        }
+    }
+
+    public function installStep4_Finalize(): void
+    {
+        try {
             if (empty(config('app.key'))) {
                 $this->log('Generating application key...');
                 Artisan::call('key:generate', ['--force' => true]);
@@ -215,13 +300,14 @@ class Installer extends Component
             
             $this->log('✅ Installation completed successfully!');
             $this->installComplete = true;
+            $this->installing = false;
+            $this->installProgress = 100;
             
         } catch (\Exception $e) {
             $this->installError = $e->getMessage();
-            $this->log('❌ Error: ' . $e->getMessage());
+            $this->installing = false;
+            $this->log('Finalize error: ' . $e->getMessage());
         }
-        
-        $this->installing = false;
     }
 
     protected function log(string $message): void
@@ -245,7 +331,19 @@ class Installer extends Component
     protected function updateEnv(): void
     {
         $envPath = base_path('.env');
+
+        // Ensure .env exists; if not, create it from .env.example or as a new file
+        if (!File::exists($envPath)) {
+            $examplePath = base_path('.env.example');
+            if (File::exists($examplePath)) {
+                File::copy($examplePath, $envPath);
+            } else {
+                File::put($envPath, "");
+            }
+        }
+
         $envContent = File::get($envPath);
+        $originalContent = $envContent;
         
         // Sanitize database name for consistency
         $safeDatabaseName = $this->sanitizeDatabaseName($this->dbDatabase);
@@ -272,18 +370,31 @@ class Installer extends Component
             }
         }
         
-        File::put($envPath, $envContent);
+        if ($envContent !== $originalContent) {
+            File::put($envPath, $envContent);
+        }
     }
 
     protected function createAdminUser(): void
     {
-        $modelClass = config('installer.admin_model', \App\Models\User::class);
+        $modelClass = config('installer.admin_model');
+
+        if (!$modelClass || !class_exists($modelClass)) {
+            throw new \RuntimeException('Installer configuration error: "installer.admin_model" is not set to a valid User model class.');
+        }
+
         $roleField = config('installer.admin_role.field', 'role');
         $roleValue = config('installer.admin_role.value', 'admin');
         
-        $user = new $modelClass();
+        // Check if user exists to avoid duplicate entry errors
+        /** @var \Illuminate\Database\Eloquent\Model $user */
+        $user = $modelClass::where('email', $this->adminEmail)->first();
+        if (!$user) {
+            $user = new $modelClass();
+            $user->email = $this->adminEmail;
+        }
+        
         $user->name = $this->adminName;
-        $user->email = $this->adminEmail;
         $user->password = Hash::make($this->adminPassword);
         $user->{$roleField} = $roleValue;
         
