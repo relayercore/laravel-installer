@@ -41,7 +41,7 @@ class StepManager
         $keys = array_keys($this->steps);
         $position = array_search($currentId, $keys);
 
-        if ($position === false || not(isset($keys[$position + 1]))) {
+        if ($position === false || !isset($keys[$position + 1])) {
             return null;
         }
 

@@ -29,6 +29,12 @@ class CheckRequirements implements InstallerStep
     public function validate(array $data = []): bool
     {
         $requirements = $this->check();
+        $failures = array_keys(array_filter($requirements, fn($res) => !$res));
+        
+        if (!empty($failures)) {
+            \Illuminate\Support\Facades\Log::warning("Installer: Requirements failed: " . implode(', ', $failures));
+        }
+        
         return !in_array(false, $requirements);
     }
 

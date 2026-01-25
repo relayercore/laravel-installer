@@ -33,16 +33,3 @@
     </div>
 </div>
 
-@if(!empty($installLog))
-    <div class="mt-6 p-4 bg-gray-900 text-gray-100 rounded-lg max-h-48 overflow-y-auto font-mono text-sm">
-        @foreach($installLog as $log)
-            <div>{{ $log }}</div>
-        @endforeach
-    </div>
-@endif
-
-@if($installError)
-    <div class="mt-4 p-4 bg-red-100 text-red-700 rounded-lg">
-        <strong>Installation Error:</strong> {{ $installError }}
-    </div>
-@endif

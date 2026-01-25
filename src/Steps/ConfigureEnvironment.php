@@ -59,23 +59,36 @@ class ConfigureEnvironment implements InstallerStep
         DB::purge();
     }
 
-    protected function testConnection(array $data): bool
+    public function testConnection(array $data): bool
     {
         // ... (Connection logic similar to original but cleaner)
         // For brevity in this refactor, implying simplified logic or use of dedicated service
-        $dsn = "{$data['connection']}:host={$data['host']};port={$data['port']}";
-        $user = $data['username'];
-        $pass = $data['password'];
+        $connection = $data['connection'] ?? 'mysql';
+        $host = $data['host'] ?? '127.0.0.1';
+        $port = $data['port'] ?? '3306';
+        $database = $data['database'] ?? '';
+        $username = $data['username'] ?? 'root';
+        $password = $data['password'] ?? '';
 
+        $dsn = "{$connection}:host={$host};port={$port}";
+        
         try {
-            $pdo = new \PDO($dsn, $user, $pass);
+            $pdo = new \PDO($dsn, $username, $password);
             // Optionally try to create Database
             $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
             
+            // In SQLite, the database is the file, so we skip creation check usually.
+            if ($connection === 'sqlite') {
+                return true;
+            }
+            
             // Check if DB exists or create it
-            $stmt = $pdo->query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{$data['database']}'");
-            if (!$stmt->fetch()) {
-                 $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$data['database']}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            // Note: This query might fail if user doesn't have privileges, which is a valid test result
+            if ($database) {
+                $stmt = $pdo->query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{$database}'");
+                if (!$stmt->fetch()) {
+                     $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                }
             }
             
             return true;

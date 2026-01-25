@@ -15,10 +15,15 @@ use RelayerCore\LaravelInstaller\Steps\RunMigrations;
 class Installer extends Component
 {
     public string $currentStepId = 'requirements';
-    public array $state = [];
+    public array $state = [
+        'host' => '127.0.0.1',
+        'port' => '3306',
+        'connection' => 'mysql',
+    ];
     public array $errorBag = [];
     public bool $loading = false;
     public array $logs = [];
+    public ?array $testConnectionResult = null; // { success: bool, message: string }
 
     protected StepManager $stepManager;
 
@@ -53,9 +58,13 @@ class Installer extends Component
     public function next()
     {
         $step = $this->stepManager->getStep($this->currentStepId);
+        \Illuminate\Support\Facades\Log::info("Installer: Attempting next step from [{$this->currentStepId}]");
         
         try {
-            if (!$step->validate($this->state)) {
+            $validation = $step->validate($this->state);
+            \Illuminate\Support\Facades\Log::info("Installer: Validation result for [{$step->id()}]: " . ($validation ? 'PASS' : 'FAIL'));
+
+            if (!$validation) {
                 // Validation failed (handled by step throwing or returning false)
                 // If the step returns simple false, we might want a generic error
                 $this->addError('global', 'Please check your inputs and try again.');
@@ -67,13 +76,16 @@ class Installer extends Component
             // Advance
             $next = $this->stepManager->getNextStep($this->currentStepId);
             if ($next) {
+                \Illuminate\Support\Facades\Log::info("Installer: Moving to next step [{$next->id()}]");
                 $this->currentStepId = $next->id();
             } else {
+                \Illuminate\Support\Facades\Log::info("Installer: No next step, finishing.");
                 // Finale
                 $this->finish();
             }
             
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Installer: Error in next(): " . $e->getMessage());
             $this->addError('global', $e->getMessage());
         }
     }
@@ -91,6 +103,21 @@ class Installer extends Component
     protected function isInstalled(): bool
     {
         return file_exists(config('installer.installed_file', storage_path('installed')));
+    }
+
+    public function testDatabase()
+    {
+        $step = $this->stepManager->getStep('environment');
+        $this->testConnectionResult = null;
+
+        try {
+            if (method_exists($step, 'testConnection')) {
+                $step->testConnection($this->state);
+                $this->testConnectionResult = ['success' => true, 'message' => 'Connection successful! Database is ready.'];
+            }
+        } catch (\Exception $e) {
+            $this->testConnectionResult = ['success' => false, 'message' => $e->getMessage()];
+        }
     }
 
     public function render()

@@ -47,46 +47,27 @@
         <input type="password" wire:model="state.password" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all shadow-sm" placeholder="• • • • • • • •">
     </div>
     @endif
-</div>
-
-<div class="mt-8 pt-6 border-t border-gray-100">
-    <label class="flex items-center cursor-pointer group">
-        <div class="relative">
-            <input type="checkbox" wire:model="loadDemoData" class="sr-only">
-            <div class="block bg-gray-200 w-12 h-7 rounded-full transition group-hover:bg-gray-300"></div>
-            <div class="dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition transform {{ $loadDemoData ? 'translate-x-5 !bg-primary' : '' }}"></div>
-        </div>
-        <div class="ml-3 text-gray-700 font-medium select-none">
-            Load Demo Data <span class="text-xs text-gray-400 ml-1">(Recommended for testing)</span>
-        </div>
-    </label>
-    <p class="mt-2 text-sm text-gray-500 ml-15">
-        Populates the database with sample data (services, staff, and example bookings) so you can explore the application immediately.
-    </p>
-</div>
-
-<button wire:click="testConnection" class="mt-6 px-6 py-2.5 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition">
-    <span wire:loading.remove wire:target="testConnection">Test Connection</span>
-    <span wire:loading wire:target="testConnection">Testing...</span>
-</button>
-
-@if($dbConnected)
-    <div class="mt-4 p-4 bg-green-100 text-green-700 rounded-lg">
-        <strong>✓ Connection successful!</strong> Database is ready.
-    </div>
-@endif
-
-@if($dbFriendlyError)
-    <div class="mt-4 p-4 bg-red-100 text-red-700 rounded-lg" x-data="{ showDetails: false }">
-        <p class="font-semibold mb-1">Connection failed</p>
-        <p class="text-sm mb-2">{{ $dbFriendlyError }}</p>
-
-        @if($dbError)
-            <button type="button" @click="showDetails = !showDetails" class="text-xs text-red-700 underline">
-                <span x-show="!showDetails">Show technical details</span>
-                <span x-show="showDetails">Hide technical details</span>
+    
+    <div class="col-span-full pt-4">
+        <div class="flex items-center gap-4">
+            <button type="button" wire:click="testDatabase" wire:loading.attr="disabled" class="text-sm font-semibold text-slate-700 hover:text-slate-900 underline decoration-slate-300 hover:decoration-slate-900 underline-offset-4 transition-all">
+                <span wire:loading.remove wire:target="testDatabase">Test Connection</span>
+                <span wire:loading wire:target="testDatabase">Testing...</span>
             </button>
-            <pre class="mt-2 text-xs bg-red-200/60 text-red-800 rounded p-2 font-mono" x-show="showDetails">{{ $dbError }}</pre>
+        </div>
+
+        @if($testConnectionResult)
+            <div class="mt-4 p-4 rounded-xl {{ $testConnectionResult['success'] ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700' }} text-sm font-medium flex items-start gap-3">
+                <div class="flex-shrink-0 mt-0.5">
+                    @if($testConnectionResult['success'])
+                        <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                    @else
+                        <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    @endif
+                </div>
+                <span>{{ $testConnectionResult['message'] }}</span>
+            </div>
         @endif
     </div>
-@endif
+</div>
+
