@@ -11,6 +11,12 @@ class InstallerServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/installer.php', 'installer');
 
+        // Register core services
+        $this->app->bind(
+            \RelayerCore\LaravelInstaller\Contracts\EnvironmentWriter::class,
+            \RelayerCore\LaravelInstaller\Services\DotEnvWriter::class
+        );
+
         // Early installation check - runs before other service providers boot
         $this->earlyInstallationCheck();
     }

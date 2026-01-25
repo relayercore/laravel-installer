@@ -26,10 +26,8 @@
     </style>
     @livewireStyles
 </head>
-<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-2xl">
-        {{ $slot }}
-    </div>
+<body class="bg-gray-100 min-h-screen">
+    {{ $slot }}
     @livewireScripts
 </body>
 </html>

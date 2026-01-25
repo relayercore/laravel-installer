@@ -38,6 +38,9 @@
             "providers": [
                 "RelayerCore\\LaravelInstaller\\InstallerServiceProvider"
             ]
+        },
+        "branch-alias": {
+            "dev-main": "1.x-dev"
         }
     },
     "config": {
