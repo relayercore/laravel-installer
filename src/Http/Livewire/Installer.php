@@ -53,14 +53,17 @@ class Installer extends Component
         // 1. Auto-init .env if missing (Zero-Config First Load)
         if (!file_exists(base_path('.env')) && file_exists(base_path('.env.example'))) {
             copy(base_path('.env.example'), base_path('.env'));
-            // Force reload so Laravel picks up the new environment file
-            return redirect(request()->url());
+            
+            // Use JS redirect to ensure browser reloads even if headers are sent
+            echo "<script>window.location.reload();</script>";
+            exit;
         }
 
         if ($this->isInstalled()) {
              return redirect('/');
         }
     }
+
 
     public function next()
     {

@@ -15,6 +15,10 @@ class CheckInstallation
         'install',
         'install/*',
         'livewire/*',
+        'livewire/livewire.js',
+        'livewire/livewire.min.js',
+        'livewire/preview-file/*',
+        'livewire/upload-file',
         'livewire/message/*',
     ];
 

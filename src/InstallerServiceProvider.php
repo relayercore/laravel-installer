@@ -28,9 +28,17 @@ class InstallerServiceProvider extends ServiceProvider
     protected function earlyInstallationCheck(): void
     {
         $installedFile = config('installer.installed_file') ?? storage_path('installed');
+        $isInstalled = file_exists($installedFile);
         
         // Store installation status in app container for other providers to check
-        $this->app->instance('installer.is_installed', file_exists($installedFile));
+        $this->app->instance('installer.is_installed', $isInstalled);
+
+        // Force Debug Mode if not installed
+        // This ensures Livewire assets (non-minified) load correctly 
+        // even if the user's default config has debug=false.
+        if (!$isInstalled) {
+            config(['app.debug' => true]);
+        }
     }
 
     public function boot(): void
