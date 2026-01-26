@@ -12,9 +12,9 @@ A beautiful, reusable web-based installer for Laravel applications. Perfect for 
 - 🎨 Beautiful, modern UI
 - 📋 Configurable installation steps
 - ✅ Server requirements checking
-- 🗄️ Database configuration & testing
+- 🗄️ Database configuration & **Instant Connection Testing**
 - 👤 Admin account creation
-- 🔌 Custom step support
+- 🔄 Modular SOLID Architecture (Easy to extend)
 - 🎯 Works with Laravel 10, 11 & 12
 
 ## Installation
@@ -72,19 +72,6 @@ Navigate to `/install` in your browser.
 
 ## Customization
 
-### Custom Steps
-
-Add custom steps in config:
-
-```php
-'custom_steps' => [
-    [
-        'name' => 'License',
-        'view' => 'installer.steps.license',
-        'handler' => \App\Installer\LicenseStep::class,
-    ],
-],
-```
 
 ### Styling
 
