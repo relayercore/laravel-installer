@@ -91,10 +91,17 @@ Views are published to `resources/views/vendor/installer/`.
 4. Creates `storage/installed` marker file
 5. App runs normally
 
-## Security
+## Security & Best Practices for CodeCanyon
 
-After installation, the `/install` route is automatically blocked. Optionally delete the route for extra security.
+If you are distributing your application (e.g., via CodeCanyon or zip file), follow these steps to ensure a secure installation experience:
 
-## License
+1.  **Include a `.env` file**: Your zip file MUST include a `.env` file in the root.
+2.  **Set a "Boot Key"**: Inside that `.env`, set a generic `APP_KEY` which acts as the "boot key" to allow the installer wizard to load.
+    ```env
+    APP_KEY=base64:YOUR_GENERIC_KEY_HERE
+    ```
+3.  **Automatic Rotation**: This installer automatically runs `php artisan key:generate` as the final step, replacing your generic key with a **unique, secure key** for the customer.
+
+This ensures your customers don't face "No application key" errors, while maintaining top-tier security.
 
 MIT
