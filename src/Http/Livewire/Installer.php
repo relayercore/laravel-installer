@@ -50,6 +50,13 @@ class Installer extends Component
 
     public function mount()
     {
+        // 1. Auto-init .env if missing (Zero-Config First Load)
+        if (!file_exists(base_path('.env')) && file_exists(base_path('.env.example'))) {
+            copy(base_path('.env.example'), base_path('.env'));
+            // Force reload so Laravel picks up the new environment file
+            return redirect(request()->url());
+        }
+
         if ($this->isInstalled()) {
              return redirect('/');
         }

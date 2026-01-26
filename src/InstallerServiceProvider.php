@@ -61,8 +61,10 @@ class InstallerServiceProvider extends ServiceProvider
 
     protected function registerMiddleware(): void
     {
-        // Add to web middleware group (runs after StartSession usually)
-        $router = $this->app['router'];
-        $router->pushMiddlewareToGroup('web', Middleware\CheckInstallation::class);
+        // Add to global middleware stack
+        // This ensures the check runs for all requests (web, api, etc.)
+        // preventing application errors if the app isn't installed yet.
+        $kernel = $this->app->make(\Illuminate\Contracts\Http\Kernel::class);
+        $kernel->pushMiddleware(Middleware\CheckInstallation::class);
     }
 }
