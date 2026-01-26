@@ -92,10 +92,16 @@ class Installer extends Component
 
     public function finish()
     {
-        // Mark installed
+        // 1. Regenerate the App Key (Security Best Practice)
+        // This invalidates the generic "boot key" and sets a unique one for this app.
+        // Note: This will invalidate the current session, which is expected.
+        \Illuminate\Support\Facades\Artisan::call('key:generate', ['--force' => true]);
+
+        // 2. Mark installed
         $installedFile = config('installer.installed_file', storage_path('installed'));
         file_put_contents($installedFile, now());
         
+        // 3. Redirect
         $redirect = config('installer.redirect_after_install', '/admin');
         return redirect($redirect);
     }
