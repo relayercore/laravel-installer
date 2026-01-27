@@ -19,6 +19,8 @@ class Installer extends Component
         'host' => '127.0.0.1',
         'port' => '3306',
         'connection' => 'mysql',
+        'username' => 'root',
+        'vertical' => 'universal',
     ];
     public array $errorBag = [];
     public bool $loading = false;
@@ -45,6 +47,12 @@ class Installer extends Component
         $this->stepManager->register(new ConfigureEnvironment($envWriter));
         
         $this->stepManager->register(new RunMigrations());
+        
+        // Add Industry Selection Step (Only if verticals folder exists)
+        if (\RelayerCore\LaravelInstaller\Steps\SelectIndustry::hasVerticals()) {
+            $this->stepManager->register(new \RelayerCore\LaravelInstaller\Steps\SelectIndustry());
+        }
+
         $this->stepManager->register(new CreateAdmin());
     }
 
@@ -102,17 +110,38 @@ class Installer extends Component
 
     public function finish()
     {
-        // 1. Regenerate the App Key (Security Best Practice)
+        // 1. Activate Selected Vertical (If Module System Exists)
+        // 1. Activate Selected Vertical (If Wrapper/Interface Exists)
+        if (
+            isset($this->state['vertical']) && 
+            $this->state['vertical'] !== 'universal' &&
+            interface_exists(\RelayerCore\LaravelInstaller\Contracts\ModuleActivator::class) &&
+            app()->bound(\RelayerCore\LaravelInstaller\Contracts\ModuleActivator::class)
+        ) {
+            try {
+                $activator = app(\RelayerCore\LaravelInstaller\Contracts\ModuleActivator::class);
+                $activator->activate($this->state['vertical']);
+                \Illuminate\Support\Facades\Log::info("Installer: Activated vertical [{$this->state['vertical']}] via ModuleActivator.");
+            } catch (\Exception $e) {
+                // Don't fail the install, but log it
+                \Illuminate\Support\Facades\Log::error("Installer: Failed to activate vertical: " . $e->getMessage());
+            }
+        }
+
+        // 2. Regenerate the App Key (Security Best Practice)
         // This invalidates the generic "boot key" and sets a unique one for this app.
         // Note: This will invalidate the current session, which is expected.
         \Illuminate\Support\Facades\Artisan::call('key:generate', ['--force' => true]);
 
-        // 2. Mark installed
+        // 3. Mark installed
         $installedFile = config('installer.installed_file', storage_path('installed'));
         file_put_contents($installedFile, now());
         
-        // 3. Redirect
+        // 4. Redirect
         $redirect = config('installer.redirect_after_install', '/admin');
+        
+        $this->dispatch('installer-finishing');
+        
         return redirect($redirect);
     }
     

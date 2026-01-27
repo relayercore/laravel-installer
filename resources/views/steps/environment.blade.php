@@ -48,6 +48,18 @@
     </div>
     @endif
     
+    <div class="col-span-full border-t border-slate-200 pt-6 mt-2">
+         <label class="flex items-start gap-4 cursor-pointer group">
+             <div class="flex items-center h-6">
+                 <input type="checkbox" wire:model.live="state.multi_tenant" class="h-5 w-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-600 transition-all">
+             </div>
+             <div class="flex-1">
+                  <span class="font-semibold text-slate-900 block group-hover:text-indigo-600 transition-colors">Enable Multi-Tenancy (SaaS Mode)</span>
+                  <span class="text-slate-500 text-sm leading-relaxed mt-1 block">Enable this if you plan to host multiple separate businesses under one installation. <strong class="font-medium text-slate-700">Leave unchecked</strong> for a standard single-business setup.</span>
+             </div>
+         </label>
+    </div>
+    
     <div class="col-span-full pt-4">
         <div class="flex items-center gap-4">
             <button type="button" wire:click="testDatabase" wire:loading.attr="disabled" class="text-sm font-semibold text-slate-700 hover:text-slate-900 underline decoration-slate-300 hover:decoration-slate-900 underline-offset-4 transition-all">

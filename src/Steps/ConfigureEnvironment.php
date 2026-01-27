@@ -51,6 +51,7 @@ class ConfigureEnvironment implements InstallerStep
             'DB_DATABASE' => $data['database'] ?? 'laravel',
             'DB_USERNAME' => $data['username'] ?? 'root',
             'DB_PASSWORD' => $data['password'] ?? '',
+            'BOOKFLOW_MULTI_TENANT' => isset($data['multi_tenant']) && $data['multi_tenant'] ? 'true' : 'false',
         ]);
         
         $this->env->save();
