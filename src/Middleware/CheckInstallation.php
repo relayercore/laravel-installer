@@ -33,6 +33,11 @@ class CheckInstallation
 
         // If not installed, only allow access to install routes
         if (!$isInstalled) {
+            $path = $request->path();
+            if (str_contains($path, 'livewire') || $request->is('*livewire*')) {
+                return $next($request);
+            }
+
             foreach ($this->exceptRoutes as $route) {
                 if ($request->is($route)) {
                     return $next($request);
