@@ -53,11 +53,63 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Installation Steps
+    |--------------------------------------------------------------------------
+    | The ordered list of step classes that form the installation wizard.
+    | Each class must implement InstallerStep. You can add, remove, or
+    | reorder steps as needed for your application.
+    */
+    'steps' => [
+        \RelayerCore\LaravelInstaller\Steps\CheckRequirements::class,
+        \RelayerCore\LaravelInstaller\Steps\CheckPermissions::class,
+        \RelayerCore\LaravelInstaller\Steps\ConfigureEnvironment::class,
+        \RelayerCore\LaravelInstaller\Steps\RunMigrations::class,
+        \RelayerCore\LaravelInstaller\Steps\CreateAdmin::class,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Admin User Model
     |--------------------------------------------------------------------------
     | The model class for creating admin users.
     */
     'admin_model' => \App\Models\User::class,
+
+    /*
+    |--------------------------------------------------------------------------
+    | After Admin Created Callback
+    |--------------------------------------------------------------------------
+    | Called after the admin user is created/saved. Receives the user model
+    | instance. Use this to assign roles, permissions, or run any
+    | post-creation logic specific to your application.
+    |
+    | Provide the fully qualified class name of an invokable class.
+    |
+    | Example:
+    |   'on_admin_created' => \App\Installer\Callbacks\AdminCreated::class,
+    */
+    'on_admin_created' => null,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Extra Environment Fields
+    |--------------------------------------------------------------------------
+    | Additional .env variables to write during the environment step.
+    | Each entry maps an env key to its UI configuration. These are
+    | rendered as extra form fields on the database setup screen.
+    |
+    | Example:
+    |   'environment_fields' => [
+    |       'MULTI_TENANT' => [
+    |           'type' => 'checkbox',
+    |           'label' => 'Enable Multi-Tenancy',
+    |           'description' => 'Host multiple businesses under one install.',
+    |           'default' => false,
+    |           'state_key' => 'multi_tenant',
+    |       ],
+    |   ],
+    */
+    'environment_fields' => [],
 
     /*
     |--------------------------------------------------------------------------
@@ -67,17 +119,6 @@ return [
     | Default: 'DemoSeeder'
     */
     'seeder' => 'DemoSeeder',
-
-    /*
-    |--------------------------------------------------------------------------
-    | Admin Role Field
-    |--------------------------------------------------------------------------
-    | The field name and value for the admin role.
-    */
-    'admin_role' => [
-        'field' => 'role',
-        'value' => 'admin',
-    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -99,18 +140,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Custom Steps
-    |--------------------------------------------------------------------------
-    | Add custom installation steps.
-    | Each step needs: name, view, handler (optional)
-    */
-    'custom_steps' => [],
-
-    /*
-    |--------------------------------------------------------------------------
     | After Install Callback
     |--------------------------------------------------------------------------
-    | Called after successful installation.
+    | Called after successful installation, before the redirect.
+    | Receives no arguments. Use this for custom post-install logic
+    | like activating modules, sending notifications, etc.
+    |
+    | Provide the fully qualified class name of an invokable class.
+    |
+    | Example:
+    |   'after_install' => \App\Installer\Callbacks\AfterInstall::class,
     */
     'after_install' => null,
 

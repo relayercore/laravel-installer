@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ config('installer.name', 'App') }} - Installation</title>
+    <title>{{ __('installer::installer.title', ['name' => config('installer.name', 'App')]) }}</title>
+    <link rel="icon" type="image/png" href="{{ config('installer.favicon', asset('favicon.png')) }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {

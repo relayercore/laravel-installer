@@ -3,8 +3,17 @@
 namespace RelayerCore\LaravelInstaller\Steps;
 
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use RelayerCore\LaravelInstaller\Contracts\InstallerStep;
 
+/**
+ * Creates the initial administrator account during installation.
+ *
+ * Uses the model class from config('installer.admin_model') and delegates
+ * role/permission assignment to the host application via the
+ * config('installer.on_admin_created') closure, keeping this step
+ * completely agnostic of any specific auth/role system.
+ */
 class CreateAdmin implements InstallerStep
 {
     public function id(): string
@@ -14,7 +23,7 @@ class CreateAdmin implements InstallerStep
 
     public function label(): string
     {
-        return 'Create Admin';
+        return __('installer::installer.step_admin');
     }
 
     public function view(): string
@@ -29,36 +38,37 @@ class CreateAdmin implements InstallerStep
 
     public function validate(array $data = []): bool
     {
-        // In real impl, would use Validator façade
         return !empty($data['email']) && !empty($data['password']);
     }
 
     public function process(array $data = []): void
     {
         $modelClass = config('installer.admin_model');
-        // Simple check
+
         if (!class_exists($modelClass)) {
-            // Log warning or throw, but don't fail hard if user model is weird
             return;
         }
 
         $user = $modelClass::where('email', $data['email'])->first() ?? new $modelClass();
-        
+
         $user->email = $data['email'];
         $user->name = $data['name'];
         $user->password = Hash::make($data['password']);
-        
-        // Handle Role if configured
-        $roleField = config('installer.admin_role.field');
-        if ($roleField) {
-            $user->$roleField = config('installer.admin_role.value', 'admin');
-        }
 
-        // Handle common flags
-        if (\Illuminate\Support\Facades\Schema::hasColumn($user->getTable(), 'is_active')) {
+        // Handle common flags present on many User models
+        if (Schema::hasColumn($user->getTable(), 'is_active')) {
             $user->is_active = true;
         }
-        
+
         $user->save();
+
+        // Delegate role/permission assignment to the host application
+        $callbackClass = config('installer.on_admin_created');
+        if (is_string($callbackClass) && class_exists($callbackClass)) {
+            $callback = app($callbackClass);
+            if (is_callable($callback)) {
+                $callback($user);
+            }
+        }
     }
 }

@@ -1,6 +1,6 @@
 <div class="mb-6">
-    <h3 class="text-2xl font-bold text-slate-900">Database Setup</h3>
-    <p class="text-slate-500 mt-2">Ready to install database tables.</p>
+    <h3 class="text-2xl font-bold text-slate-900">{{ __('installer::installer.migrations_title') }}</h3>
+    <p class="text-slate-500 mt-2">{{ __('installer::installer.migrations_subtitle') }}</p>
 </div>
 
 <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6">
@@ -13,12 +13,11 @@
             </div>
         </div>
         <div class="ml-5">
-            <h4 class="text-lg font-semibold text-slate-800">Migration & Seeding</h4>
+            <h4 class="text-lg font-semibold text-slate-800">{{ __('installer::installer.migrations_heading') }}</h4>
             <p class="text-slate-600 mt-1 text-sm leading-relaxed">
-                We're about to run the standard migration to set up your database schema. 
-                You can optionally seed the database with demo content to get started quickly.
+                {{ __('installer::installer.migrations_description') }}
             </p>
-            
+
             <div class="mt-6">
                 <label class="flex items-center cursor-pointer group">
                     <div class="relative">
@@ -27,8 +26,8 @@
                         <div class="dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full shadow transition transform duration-200 ease-in-out" :class="{'translate-x-5 !bg-slate-900': $wire.state.load_demo_data}"></div>
                     </div>
                     <div class="ml-3 select-none">
-                        <span class="block text-sm font-semibold text-slate-900">Install Demo Data</span>
-                        <span class="block text-xs text-slate-500">Recommended for development</span>
+                        <span class="block text-sm font-semibold text-slate-900">{{ __('installer::installer.migrations_demo_label') }}</span>
+                        <span class="block text-xs text-slate-500">{{ __('installer::installer.migrations_demo_hint') }}</span>
                     </div>
                 </label>
             </div>
@@ -37,15 +36,15 @@
 </div>
 
 <div x-data="{ showHelp: false }" class="mt-6">
-    <button type="button" @click="showHelp = !showHelp" class="text-sm font-medium text-slate-500 hover:text-slate-700 underline decoration-slate-300 hover:decoration-slate-500 underline-offset-4 transition-all">
-        <span x-show="!showHelp">Having trouble? Check common solutions</span>
-        <span x-show="showHelp" style="display: none;">Hide solutions</span>
+    <button type="button" @click="showHelp = !showHelp" class="text-sm font-medium text-slate-500 hover:text-slate-700 underline decoration-slate-300 hover:decoration-slate-500 underline-offset-4 transition-all cursor-pointer">
+        <span x-show="!showHelp">{{ __('installer::installer.migrations_help_toggle_show') }}</span>
+        <span x-show="showHelp" style="display: none;">{{ __('installer::installer.migrations_help_toggle_hide') }}</span>
     </button>
     <div x-show="showHelp" style="display: none;" class="mt-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 space-y-2">
-        <p>• Ensure your database server is running and accessible from this server.</p>
-        <p>• Verify the database credentials in the previous step (host, port, username, password).</p>
-        <p>• Make sure your database user has <code class="bg-amber-100 px-1 rounded">CREATE TABLE</code> privileges.</p>
-        <p>• Check the database server error logs for more specific details.</p>
-        <p>• If all else fails, review <code class="bg-amber-100 px-1 rounded">storage/logs/laravel.log</code> for the full error trace.</p>
+        <p>&bull; {{ __('installer::installer.migrations_help_1') }}</p>
+        <p>&bull; {{ __('installer::installer.migrations_help_2') }}</p>
+        <p>&bull; {{ __('installer::installer.migrations_help_3') }}</p>
+        <p>&bull; {{ __('installer::installer.migrations_help_4') }}</p>
+        <p>&bull; {{ __('installer::installer.migrations_help_5') }}</p>
     </div>
 </div>

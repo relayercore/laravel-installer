@@ -4,10 +4,17 @@ declare(strict_types=1);
 
 namespace RelayerCore\LaravelInstaller\Steps;
 
+use Exception;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 use RelayerCore\LaravelInstaller\Contracts\InstallerStep;
 
+/**
+ * Runs database migrations and optional demo data seeding.
+ *
+ * On failure, automatically wipes the database to leave a clean state,
+ * then re-throws a user-friendly exception describing the root cause.
+ */
 class RunMigrations implements InstallerStep
 {
     public function id(): string
@@ -17,7 +24,7 @@ class RunMigrations implements InstallerStep
 
     public function label(): string
     {
-        return 'Migrate Database';
+        return __('installer::installer.step_migrations');
     }
 
     public function view(): string
@@ -45,20 +52,9 @@ class RunMigrations implements InstallerStep
 
             if (!empty($data['load_demo_data'])) {
                 $seederClass = config('installer.seeder', 'DatabaseSeeder');
-
-                if (!empty($data['vertical']) && $data['vertical'] !== 'universal') {
-                    $manifestPath = base_path("verticals/{$data['vertical']}/module.json");
-                    if (file_exists($manifestPath)) {
-                        $manifest = json_decode(file_get_contents($manifestPath), true);
-                        if (!empty($manifest['seeder'])) {
-                            $seederClass = $manifest['seeder'];
-                        }
-                    }
-                }
-
                 Artisan::call('db:seed', ['--class' => $seederClass, '--force' => true]);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             Artisan::call('db:wipe', ['--force' => true]);
 
             Log::error('Installer migration failed', [
@@ -66,28 +62,26 @@ class RunMigrations implements InstallerStep
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            throw new \Exception($this->buildErrorMessage($e));
+            throw new Exception($this->buildErrorMessage($e));
         }
     }
 
-    private function buildErrorMessage(\Exception $e): string
+    private function buildErrorMessage(Exception $e): string
     {
-        $message = 'Database setup failed. We have reverted all changes to leave a clean state.';
+        $message = __('installer::installer.migrations_error_prefix');
 
         $error = $e->getMessage();
 
         if (str_contains($error, 'Access denied')) {
-            $message .= ' The database credentials in the previous step appear to be incorrect.';
-        } elseif (str_contains($error, 'Base table or view already exists')) {
-            $message .= ' A table already exists. Please drop the database and start fresh.';
-        } elseif (str_contains($error, 'SQLSTATE[42S01]')) {
-            $message .= ' A table already exists. Please drop the database and start fresh.';
+            $message .= ' ' . __('installer::installer.migrations_error_access_denied');
+        } elseif (str_contains($error, 'Base table or view already exists') || str_contains($error, 'SQLSTATE[42S01]')) {
+            $message .= ' ' . __('installer::installer.migrations_error_table_exists');
         } elseif (str_contains($error, 'could not find driver')) {
-            $message .= ' The PHP extension for the selected database type is not installed.';
+            $message .= ' ' . __('installer::installer.migrations_error_no_driver');
         } elseif (str_contains($error, 'Connection refused')) {
-            $message .= ' The database server refused the connection. Please check if it is running.';
+            $message .= ' ' . __('installer::installer.migrations_error_connection_refused');
         } else {
-            $message .= ' Please check your database settings and try again. If the issue persists, review the logs at storage/logs/laravel.log.';
+            $message .= ' ' . __('installer::installer.migrations_error_fallback');
         }
 
         return $message;

@@ -2,8 +2,15 @@
 
 namespace RelayerCore\LaravelInstaller\Steps;
 
+use Illuminate\Support\Facades\Log;
 use RelayerCore\LaravelInstaller\Contracts\InstallerStep;
 
+/**
+ * Validates that the server meets minimum PHP version and extension requirements.
+ *
+ * Requirements are read from config('installer.requirements') so each host
+ * application can declare its own minimum PHP version and required extensions.
+ */
 class CheckRequirements implements InstallerStep
 {
     public function id(): string
@@ -13,7 +20,7 @@ class CheckRequirements implements InstallerStep
 
     public function label(): string
     {
-        return 'Server Requirements';
+        return __('installer::installer.step_requirements');
     }
 
     public function view(): string
@@ -30,11 +37,11 @@ class CheckRequirements implements InstallerStep
     {
         $requirements = $this->check();
         $failures = array_keys(array_filter($requirements, fn($res) => !$res));
-        
+
         if (!empty($failures)) {
-            \Illuminate\Support\Facades\Log::warning("Installer: Requirements failed: " . implode(', ', $failures));
+            Log::warning("Installer: Requirements failed: " . implode(', ', $failures));
         }
-        
+
         return !in_array(false, $requirements);
     }
 
@@ -48,7 +55,7 @@ class CheckRequirements implements InstallerStep
         $results = [];
         $minPhp = config('installer.requirements.php_version', '8.2');
         $results["PHP >= {$minPhp}"] = version_compare(PHP_VERSION, $minPhp, '>=');
-        
+
         foreach (config('installer.requirements.extensions', []) as $ext) {
             $results[ucfirst($ext) . ' Extension'] = extension_loaded($ext);
         }

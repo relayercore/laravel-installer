@@ -3,9 +3,21 @@
 namespace RelayerCore\LaravelInstaller\Middleware;
 
 use Closure;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Global middleware that gates access based on installation status.
+ *
+ * When the app is NOT installed:
+ *   - API/JSON requests receive a 503 JSON response (no confusing HTML redirects).
+ *   - Livewire and /install routes are whitelisted so the wizard can function.
+ *   - All other routes redirect to /install.
+ *
+ * When the app IS installed:
+ *   - /install routes redirect to / to prevent re-running the wizard.
+ */
 class CheckInstallation
 {
     /**
@@ -43,14 +55,21 @@ class CheckInstallation
                     return $next($request);
                 }
             }
-            
-            // Return redirect response directly
-            return new \Illuminate\Http\RedirectResponse(url('/install'));
+
+            // Return a proper JSON 503 for API/AJAX requests instead of an HTML redirect
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json(
+                    ['error' => __('installer::installer.not_installed')],
+                    Response::HTTP_SERVICE_UNAVAILABLE
+                );
+            }
+
+            return new RedirectResponse(url('/install'));
         }
 
         // If installed, block install routes
         if ($isInstalled && $request->is('install*')) {
-            return new \Illuminate\Http\RedirectResponse(url('/'));
+            return new RedirectResponse(url('/'));
         }
 
         return $next($request);

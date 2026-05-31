@@ -1,6 +1,6 @@
 <div class="mb-4">
-    <h3 class="text-2xl font-bold text-slate-900">Server Requirements</h3>
-    <p class="text-slate-500 mt-2">Checking your server compatibility.</p>
+    <h3 class="text-2xl font-bold text-slate-900">{{ __('installer::installer.requirements_title') }}</h3>
+    <p class="text-slate-500 mt-2">{{ __('installer::installer.requirements_subtitle') }}</p>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -24,7 +24,7 @@
             </div>
             <div class="ml-4">
                 <p class="text-sm font-semibold {{ $passed ? 'text-slate-700' : 'text-red-700' }}">{{ $requirement }}</p>
-                <p class="text-xs {{ $passed ? 'text-slate-400' : 'text-red-500' }}">{{ $passed ? 'Passed' : 'Action Required' }}</p>
+                <p class="text-xs {{ $passed ? 'text-slate-400' : 'text-red-500' }}">{{ $passed ? __('installer::installer.requirements_passed_label') : __('installer::installer.requirements_failed_label') }}</p>
             </div>
         </div>
     @endforeach
@@ -32,10 +32,10 @@
 
 @if(!in_array(false, $requirements))
     <div class="mt-6 p-4 bg-green-100 text-green-700 rounded-lg">
-        <strong>All requirements passed!</strong> Click Continue to proceed.
+        <strong>{{ __('installer::installer.requirements_all_passed') }}</strong>
     </div>
 @else
     <div class="mt-6 p-4 bg-red-100 text-red-700 rounded-lg">
-        <strong>Action Required:</strong> Please resolve the failed requirements before continuing.
+        <strong>{{ __('installer::installer.requirements_action_needed') }}</strong>
     </div>
 @endif

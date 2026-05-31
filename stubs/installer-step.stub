@@ -1,0 +1,58 @@
+<?php
+
+namespace {{ namespace }};
+
+use RelayerCore\LaravelInstaller\Contracts\InstallerStep;
+
+class {{ class }} implements InstallerStep
+{
+    /**
+     * Unique identifier for the step. Used for routing and state tracking.
+     */
+    public function id(): string
+    {
+        return '{{ id }}';
+    }
+
+    /**
+     * The label displayed in the sidebar.
+     */
+    public function label(): string
+    {
+        return '{{ class }}';
+    }
+
+    /**
+     * The view path to render for this step.
+     */
+    public function view(): string
+    {
+        return 'installer.steps.{{ id }}';
+    }
+
+    /**
+     * Determine if this step should be skipped based on environmental conditions.
+     */
+    public function isSkipped(): bool
+    {
+        return false;
+    }
+
+    /**
+     * Validate the form data before proceeding.
+     * Throw a ValidationException or return true/false.
+     */
+    public function validate(array $data = []): bool
+    {
+        // Add your validation rules here
+        return true;
+    }
+
+    /**
+     * Process the form data when the step is submitted.
+     */
+    public function process(array $data = []): void
+    {
+        // Process and save your data here
+    }
+}

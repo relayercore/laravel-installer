@@ -1,11 +1,11 @@
 <div class="mb-6">
-    <h3 class="text-2xl font-bold text-slate-900">Database Connection</h3>
-    <p class="text-slate-500 mt-2">Configure your database settings.</p>
+    <h3 class="text-2xl font-bold text-slate-900">{{ __('installer::installer.environment_title') }}</h3>
+    <p class="text-slate-500 mt-2">{{ __('installer::installer.environment_subtitle') }}</p>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div class="col-span-full">
-        <label class="block text-sm font-semibold text-slate-700 mb-2">Connection Type</label>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">{{ __('installer::installer.environment_connection_type') }}</label>
         <select wire:model.live="state.connection"
             x-on:change="
                 const port = { mysql: '3306', pgsql: '5432', sqlsrv: '1433', sqlite: '' };
@@ -21,17 +21,17 @@
 
     @if(($state['connection'] ?? 'mysql') !== 'sqlite')
     <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">Host</label>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">{{ __('installer::installer.environment_host') }}</label>
         <input type="text" wire:model="state.host" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all shadow-sm" placeholder="127.0.0.1">
     </div>
     <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">Port</label>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">{{ __('installer::installer.environment_port') }}</label>
         <input type="text" wire:model="state.port" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all shadow-sm" placeholder="3306">
     </div>
     @endif
 
     <div class="col-span-full">
-        <label class="block text-sm font-semibold text-slate-700 mb-2">Database Name</label>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">{{ __('installer::installer.environment_database_name') }}</label>
         <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                 <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -40,37 +40,59 @@
             </div>
             <input type="text" wire:model="state.database" class="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all shadow-sm" placeholder="laravel_app">
         </div>
-        <p class="text-xs text-slate-500 mt-1">If it doesn't exist, we'll attempt to create it.</p>
+        <p class="text-xs text-slate-500 mt-1">{{ __('installer::installer.environment_database_hint') }}</p>
     </div>
 
     @if(($state['connection'] ?? 'mysql') !== 'sqlite')
     <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">Username</label>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">{{ __('installer::installer.environment_username') }}</label>
         <input type="text" wire:model="state.username" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all shadow-sm" placeholder="root">
     </div>
     <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">Password</label>
+        <label class="block text-sm font-semibold text-slate-700 mb-2">{{ __('installer::installer.environment_password') }}</label>
         <input type="password" wire:model="state.password" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all shadow-sm" placeholder="• • • • • • • •">
     </div>
     @endif
-    
-    <div class="col-span-full border-t border-slate-200 pt-6 mt-2">
-         <label class="flex items-start gap-4 cursor-pointer group">
-             <div class="flex items-center h-6">
-                 <input type="checkbox" wire:model.live="state.multi_tenant" class="h-5 w-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-600 transition-all">
-             </div>
-             <div class="flex-1">
-                  <span class="font-semibold text-slate-900 block group-hover:text-indigo-600 transition-colors">Enable Multi-Tenancy (SaaS Mode)</span>
-                  <span class="text-slate-500 text-sm leading-relaxed mt-1 block">Enable this if you plan to host multiple separate businesses under one installation. <strong class="font-medium text-slate-700">Leave unchecked</strong> for a standard single-business setup.</span>
-             </div>
-         </label>
-    </div>
-    
+
+    {{-- Dynamic Extra Environment Fields (from host app config) --}}
+    @foreach(config('installer.environment_fields', []) as $envKey => $fieldConfig)
+        @php
+            $stateKey = $fieldConfig['state_key'] ?? strtolower($envKey);
+            $type = $fieldConfig['type'] ?? 'text';
+            $label = $fieldConfig['label'] ?? $envKey;
+            $description = $fieldConfig['description'] ?? null;
+        @endphp
+
+        @if($type === 'checkbox')
+            <div class="col-span-full border-t border-slate-200 pt-6 mt-2">
+                <label class="flex items-start gap-4 cursor-pointer group">
+                    <div class="flex items-center h-6">
+                        <input type="checkbox" wire:model.live="state.{{ $stateKey }}" class="h-5 w-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-600 transition-all">
+                    </div>
+                    <div class="flex-1">
+                        <span class="font-semibold text-slate-900 block group-hover:text-indigo-600 transition-colors">{{ $label }}</span>
+                        @if($description)
+                            <span class="text-slate-500 text-sm leading-relaxed mt-1 block">{{ $description }}</span>
+                        @endif
+                    </div>
+                </label>
+            </div>
+        @else
+            <div class="{{ ($type === 'textarea') ? 'col-span-full' : '' }}">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">{{ $label }}</label>
+                <input type="{{ $type }}" wire:model="state.{{ $stateKey }}" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all shadow-sm" placeholder="{{ $fieldConfig['placeholder'] ?? '' }}">
+                @if($description)
+                    <p class="text-xs text-slate-500 mt-1">{{ $description }}</p>
+                @endif
+            </div>
+        @endif
+    @endforeach
+
     <div class="col-span-full pt-4">
         <div class="flex items-center gap-4">
-            <button type="button" wire:click="testDatabase" wire:loading.attr="disabled" class="text-sm font-semibold text-slate-700 hover:text-slate-900 underline decoration-slate-300 hover:decoration-slate-900 underline-offset-4 transition-all">
-                <span wire:loading.remove wire:target="testDatabase">Test Connection</span>
-                <span wire:loading wire:target="testDatabase">Testing...</span>
+            <button type="button" wire:click="testDatabase" wire:loading.attr="disabled" class="text-sm font-semibold text-slate-700 hover:text-slate-900 underline decoration-slate-300 hover:decoration-slate-900 underline-offset-4 transition-all cursor-pointer">
+                <span wire:loading.remove wire:target="testDatabase">{{ __('installer::installer.environment_test_connection') }}</span>
+                <span wire:loading wire:target="testDatabase">{{ __('installer::installer.environment_testing') }}</span>
             </button>
         </div>
 
@@ -88,4 +110,3 @@
         @endif
     </div>
 </div>
-

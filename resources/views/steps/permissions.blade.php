@@ -1,6 +1,6 @@
 <div class="mb-4">
-    <h3 class="text-2xl font-bold text-slate-900">Directory Permissions</h3>
-    <p class="text-slate-500 mt-2">Ensuring application directories are writable.</p>
+    <h3 class="text-2xl font-bold text-slate-900">{{ __('installer::installer.permissions_title') }}</h3>
+    <p class="text-slate-500 mt-2">{{ __('installer::installer.permissions_subtitle') }}</p>
 </div>
 
 <div class="space-y-3">
@@ -27,7 +27,7 @@
             </div>
             <div class="ml-4">
                 <span class="text-xs font-semibold px-2 py-1 rounded {{ $writable ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
-                    {{ $writable ? 'Writable' : 'Perms 775' }}
+                    {{ $writable ? __('installer::installer.permissions_writable') : __('installer::installer.permissions_fix') }}
                 </span>
             </div>
         </div>
@@ -36,10 +36,10 @@
 
 @if(in_array(false, $permissions))
     <div class="mt-6 p-4 bg-red-100 text-red-700 rounded-lg">
-        <strong>Action Required:</strong> Set proper permissions (chmod 775) on the directories above.
+        <strong>{{ __('installer::installer.permissions_action_needed') }}</strong>
     </div>
 @else
     <div class="mt-6 p-4 bg-green-100 text-green-700 rounded-lg">
-        <strong>All permissions correct!</strong> Click Continue to proceed.
+        <strong>{{ __('installer::installer.permissions_all_correct') }}</strong>
     </div>
 @endif

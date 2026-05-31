@@ -4,6 +4,12 @@ namespace RelayerCore\LaravelInstaller\Steps;
 
 use RelayerCore\LaravelInstaller\Contracts\InstallerStep;
 
+/**
+ * Validates that critical application directories are writable.
+ *
+ * Directories are read from config('installer.writable_directories') so each
+ * host application can declare which paths need write access.
+ */
 class CheckPermissions implements InstallerStep
 {
     public function id(): string
@@ -13,7 +19,7 @@ class CheckPermissions implements InstallerStep
 
     public function label(): string
     {
-        return 'Directory Permissions';
+        return __('installer::installer.step_permissions');
     }
 
     public function view(): string
@@ -23,7 +29,7 @@ class CheckPermissions implements InstallerStep
 
     public function isSkipped(): bool
     {
-        return false; // Could verify if all passed to auto-skip
+        return false;
     }
 
     public function validate(array $data = []): bool
@@ -41,17 +47,16 @@ class CheckPermissions implements InstallerStep
     {
         $results = [];
         $results['.env'] = is_writable(base_path('.env'));
-        
+
         foreach (config('installer.writable_directories', []) as $dir) {
             $path = base_path($dir);
             if (!file_exists($path)) {
-                // Try to create it if missing? For now just fail.
-                 $results[$dir] = false;
-                 continue;
+                $results[$dir] = false;
+                continue;
             }
             $results[$dir] = is_writable($path);
         }
-        
+
         return $results;
     }
 }

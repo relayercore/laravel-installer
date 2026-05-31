@@ -9,7 +9,16 @@ use PDO;
 use PDOException;
 use RelayerCore\LaravelInstaller\Contracts\EnvironmentWriter;
 use RelayerCore\LaravelInstaller\Contracts\InstallerStep;
+use RuntimeException;
 
+/**
+ * Handles database configuration and .env file updates during installation.
+ *
+ * Validates the database connection via raw PDO (before Laravel's config is
+ * hydrated), auto-creates the database if it doesn't exist, and persists
+ * the connection settings plus any host-app-defined extra environment
+ * fields to the .env file.
+ */
 class ConfigureEnvironment implements InstallerStep
 {
     private const PDO_ERROR_MESSAGES = [
@@ -33,7 +42,7 @@ class ConfigureEnvironment implements InstallerStep
 
     public function label(): string
     {
-        return 'Database Setup';
+        return __('installer::installer.step_environment');
     }
 
     public function view(): string
@@ -57,16 +66,28 @@ class ConfigureEnvironment implements InstallerStep
 
     public function process(array $data = []): void
     {
-        $this->env->fill([
+        $envValues = [
             'DB_CONNECTION' => $data['connection'] ?? 'mysql',
             'DB_HOST' => $data['host'] ?? '127.0.0.1',
             'DB_PORT' => $data['port'] ?? '3306',
             'DB_DATABASE' => $data['database'] ?? 'laravel',
             'DB_USERNAME' => $data['username'] ?? 'root',
             'DB_PASSWORD' => $data['password'] ?? '',
-            'BOOKFLOW_MULTI_TENANT' => isset($data['multi_tenant']) && $data['multi_tenant'] ? 'true' : 'false',
-        ]);
+        ];
 
+        // Merge any extra environment fields defined by the host application
+        foreach (config('installer.environment_fields', []) as $envKey => $fieldConfig) {
+            $stateKey = $fieldConfig['state_key'] ?? strtolower($envKey);
+            $type = $fieldConfig['type'] ?? 'text';
+
+            if ($type === 'checkbox') {
+                $envValues[$envKey] = !empty($data[$stateKey]) ? 'true' : 'false';
+            } else {
+                $envValues[$envKey] = $data[$stateKey] ?? ($fieldConfig['default'] ?? '');
+            }
+        }
+
+        $this->env->fill($envValues);
         $this->env->save();
 
         DB::purge();
@@ -95,7 +116,7 @@ class ConfigureEnvironment implements InstallerStep
 
             return true;
         } catch (PDOException $e) {
-            throw new \RuntimeException($this->friendlyErrorMessage($e, $connection, $host, $port));
+            throw new RuntimeException($this->friendlyErrorMessage($e, $connection, $host, $port));
         }
     }
 
