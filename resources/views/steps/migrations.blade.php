@@ -35,3 +35,17 @@
         </div>
     </div>
 </div>
+
+<div x-data="{ showHelp: false }" class="mt-6">
+    <button type="button" @click="showHelp = !showHelp" class="text-sm font-medium text-slate-500 hover:text-slate-700 underline decoration-slate-300 hover:decoration-slate-500 underline-offset-4 transition-all">
+        <span x-show="!showHelp">Having trouble? Check common solutions</span>
+        <span x-show="showHelp" style="display: none;">Hide solutions</span>
+    </button>
+    <div x-show="showHelp" style="display: none;" class="mt-3 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 space-y-2">
+        <p>• Ensure your database server is running and accessible from this server.</p>
+        <p>• Verify the database credentials in the previous step (host, port, username, password).</p>
+        <p>• Make sure your database user has <code class="bg-amber-100 px-1 rounded">CREATE TABLE</code> privileges.</p>
+        <p>• Check the database server error logs for more specific details.</p>
+        <p>• If all else fails, review <code class="bg-amber-100 px-1 rounded">storage/logs/laravel.log</code> for the full error trace.</p>
+    </div>
+</div>

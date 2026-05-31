@@ -1,8 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace RelayerCore\LaravelInstaller\Steps;
 
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use RelayerCore\LaravelInstaller\Contracts\InstallerStep;
 
 class RunMigrations implements InstallerStep
@@ -43,7 +46,6 @@ class RunMigrations implements InstallerStep
             if (!empty($data['load_demo_data'])) {
                 $seederClass = config('installer.seeder', 'DatabaseSeeder');
 
-                // Dynamic Seeder: Check if selected vertical has a specific seeder
                 if (!empty($data['vertical']) && $data['vertical'] !== 'universal') {
                     $manifestPath = base_path("verticals/{$data['vertical']}/module.json");
                     if (file_exists($manifestPath)) {
@@ -57,15 +59,37 @@ class RunMigrations implements InstallerStep
                 Artisan::call('db:seed', ['--class' => $seederClass, '--force' => true]);
             }
         } catch (\Exception $e) {
-            // Critical: If any step fails, we must rollback to leave a clean state.
             Artisan::call('db:wipe', ['--force' => true]);
-            
-            // Log the full technical error for debugging
-            \Illuminate\Support\Facades\Log::error("Installer Failed: " . $e->getMessage());
-            \Illuminate\Support\Facades\Log::error($e->getTraceAsString());
 
-            // Throw a friendly error for the user interface
-            throw new \Exception("Installation failed while setting up the database. We have cleaned up the system. Please click 'Try Again'. If the issue persists, check the logs.");
+            Log::error('Installer migration failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            throw new \Exception($this->buildErrorMessage($e));
         }
+    }
+
+    private function buildErrorMessage(\Exception $e): string
+    {
+        $message = 'Database setup failed. We have reverted all changes to leave a clean state.';
+
+        $error = $e->getMessage();
+
+        if (str_contains($error, 'Access denied')) {
+            $message .= ' The database credentials in the previous step appear to be incorrect.';
+        } elseif (str_contains($error, 'Base table or view already exists')) {
+            $message .= ' A table already exists. Please drop the database and start fresh.';
+        } elseif (str_contains($error, 'SQLSTATE[42S01]')) {
+            $message .= ' A table already exists. Please drop the database and start fresh.';
+        } elseif (str_contains($error, 'could not find driver')) {
+            $message .= ' The PHP extension for the selected database type is not installed.';
+        } elseif (str_contains($error, 'Connection refused')) {
+            $message .= ' The database server refused the connection. Please check if it is running.';
+        } else {
+            $message .= ' Please check your database settings and try again. If the issue persists, review the logs at storage/logs/laravel.log.';
+        }
+
+        return $message;
     }
 }

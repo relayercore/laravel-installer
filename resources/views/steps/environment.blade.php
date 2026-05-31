@@ -6,10 +6,16 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div class="col-span-full">
         <label class="block text-sm font-semibold text-slate-700 mb-2">Connection Type</label>
-        <select wire:model.live="state.connection" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all shadow-sm">
+        <select wire:model.live="state.connection"
+            x-on:change="
+                const port = { mysql: '3306', pgsql: '5432', sqlsrv: '1433', sqlite: '' };
+                $wire.state.port = port[$event.target.value] || '3306';
+            "
+            class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all shadow-sm">
             <option value="mysql">MySQL / MariaDB</option>
             <option value="pgsql">PostgreSQL</option>
             <option value="sqlite">SQLite</option>
+            <option value="sqlsrv">SQL Server</option>
         </select>
     </div>
 

@@ -19,13 +19,15 @@ class Installer extends Component
         'host' => '127.0.0.1',
         'port' => '3306',
         'connection' => 'mysql',
+        'database' => 'bookflow',
         'username' => 'root',
+        'password' => '',
         'vertical' => 'universal',
     ];
     public array $errorBag = [];
     public bool $loading = false;
     public array $logs = [];
-    public ?array $testConnectionResult = null; // { success: bool, message: string }
+    public ?array $testConnectionResult = null;
 
     protected StepManager $stepManager;
 
@@ -105,6 +107,17 @@ class Installer extends Component
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("Installer: Error in next(): " . $e->getMessage());
             $this->addError('global', $e->getMessage());
+        }
+    }
+
+    public function previous()
+    {
+        $keys = array_keys($this->stepManager->getSteps());
+        $position = array_search($this->currentStepId, $keys);
+
+        if ($position > 0) {
+            $this->currentStepId = $keys[$position - 1];
+            $this->resetErrorBag();
         }
     }
 

@@ -101,7 +101,19 @@
                 </div>
 
                 <!-- Action Bar -->
-                <div class="mt-12 flex items-center justify-end border-t border-gray-100 pt-6">
+                <div class="mt-12 flex items-center justify-between border-t border-gray-100 pt-6">
+                    @if(array_search($step->id(), array_keys($steps)) > 0)
+                        <button type="button" wire:click="previous" wire:loading.attr="disabled"
+                            class="inline-flex items-center px-6 py-3 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:text-slate-800 transition-all duration-200 disabled:opacity-50">
+                            <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                            Back
+                        </button>
+                    @else
+                        <div></div>
+                    @endif
+
                     <button type="submit" 
                          wire:loading.attr="disabled"
                          :disabled="isFinishing"

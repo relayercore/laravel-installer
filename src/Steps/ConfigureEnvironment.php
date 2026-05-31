@@ -1,13 +1,27 @@
 <?php
 
+declare(strict_types=1);
+
 namespace RelayerCore\LaravelInstaller\Steps;
 
 use Illuminate\Support\Facades\DB;
+use PDO;
+use PDOException;
 use RelayerCore\LaravelInstaller\Contracts\EnvironmentWriter;
 use RelayerCore\LaravelInstaller\Contracts\InstallerStep;
 
 class ConfigureEnvironment implements InstallerStep
 {
+    private const PDO_ERROR_MESSAGES = [
+        1045 => 'The database username or password is incorrect.',
+        1044 => 'The database user does not have permission to access this database.',
+        1049 => 'The specified database does not exist and could not be created.',
+        2002 => 'Could not connect to the database server. Please check the host and port.',
+        2003 => 'Could not connect to the database server. Please check the host and port.',
+        2005 => 'The database host address could not be resolved.',
+        2013 => 'The connection to the database server was lost. Please check your network.',
+    ];
+
     public function __construct(
         protected EnvironmentWriter $env
     ) {}
@@ -37,13 +51,12 @@ class ConfigureEnvironment implements InstallerStep
         try {
             return $this->testConnection($data);
         } catch (\Exception $e) {
-            throw $e; // Re-throw to show error in UI
+            throw $e;
         }
     }
 
     public function process(array $data = []): void
     {
-        // Update .env
         $this->env->fill([
             'DB_CONNECTION' => $data['connection'] ?? 'mysql',
             'DB_HOST' => $data['host'] ?? '127.0.0.1',
@@ -53,48 +66,123 @@ class ConfigureEnvironment implements InstallerStep
             'DB_PASSWORD' => $data['password'] ?? '',
             'BOOKFLOW_MULTI_TENANT' => isset($data['multi_tenant']) && $data['multi_tenant'] ? 'true' : 'false',
         ]);
-        
+
         $this->env->save();
-        
-        // Purge to ensure next steps use new credentials
+
         DB::purge();
     }
 
     public function testConnection(array $data): bool
     {
-        // ... (Connection logic similar to original but cleaner)
-        // For brevity in this refactor, implying simplified logic or use of dedicated service
         $connection = $data['connection'] ?? 'mysql';
         $host = $data['host'] ?? '127.0.0.1';
-        $port = $data['port'] ?? '3306';
+        $port = $data['port'] ?? $this->defaultPort($connection);
         $database = $data['database'] ?? '';
         $username = $data['username'] ?? 'root';
         $password = $data['password'] ?? '';
 
-        $dsn = "{$connection}:host={$host};port={$port}";
-        
         try {
-            $pdo = new \PDO($dsn, $username, $password);
-            // Optionally try to create Database
-            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-            
-            // In SQLite, the database is the file, so we skip creation check usually.
+            $pdo = $this->createPdo($connection, $host, $port, $database, $username, $password);
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
             if ($connection === 'sqlite') {
                 return true;
             }
-            
-            // Check if DB exists or create it
-            // Note: This query might fail if user doesn't have privileges, which is a valid test result
+
             if ($database) {
-                $stmt = $pdo->query("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '{$database}'");
-                if (!$stmt->fetch()) {
-                     $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-                }
+                $this->ensureDatabaseExists($pdo, $connection, $database);
             }
-            
+
             return true;
-        } catch (\PDOException $e) {
-             throw new \RuntimeException("Connection failed: " . $e->getMessage());
+        } catch (PDOException $e) {
+            throw new \RuntimeException($this->friendlyErrorMessage($e, $connection, $host, $port));
         }
+    }
+
+    private function defaultPort(string $connection): string
+    {
+        return match ($connection) {
+            'pgsql' => '5432',
+            'sqlsrv' => '1433',
+            default => '3306',
+        };
+    }
+
+    private function createPdo(string $connection, string $host, string $port, string $database, string $username, string $password): PDO
+    {
+        $dsn = match ($connection) {
+            'mysql' => "mysql:host={$host};port={$port};charset=utf8mb4",
+            'pgsql' => "pgsql:host={$host};port={$port};dbname={$database}",
+            'sqlsrv' => "sqlsrv:Server={$host},{$port};Database={$database}",
+            'sqlite' => 'sqlite:' . database_path('database.sqlite'),
+            default => "{$connection}:host={$host};port={$port}",
+        };
+
+        return new PDO($dsn, $username, $password);
+    }
+
+    private function ensureDatabaseExists(PDO $pdo, string $connection, string $database): void
+    {
+        $exists = match ($connection) {
+            'mysql' => $this->mysqlDatabaseExists($pdo, $database),
+            'pgsql' => $this->pgsqlDatabaseExists($pdo, $database),
+            'sqlsrv' => $this->sqlsrvDatabaseExists($pdo, $database),
+            default => true,
+        };
+
+        if (!$exists) {
+            $this->createDatabase($pdo, $connection, $database);
+        }
+    }
+
+    private function mysqlDatabaseExists(PDO $pdo, string $database): bool
+    {
+        $stmt = $pdo->prepare('SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?');
+        $stmt->execute([$database]);
+
+        return (bool) $stmt->fetch();
+    }
+
+    private function pgsqlDatabaseExists(PDO $pdo, string $database): bool
+    {
+        $stmt = $pdo->prepare('SELECT 1 FROM pg_database WHERE datname = ?');
+        $stmt->execute([$database]);
+
+        return (bool) $stmt->fetch();
+    }
+
+    private function sqlsrvDatabaseExists(PDO $pdo, string $database): bool
+    {
+        $stmt = $pdo->prepare('SELECT name FROM sys.databases WHERE name = ?');
+        $stmt->execute([$database]);
+
+        return (bool) $stmt->fetch();
+    }
+
+    private function createDatabase(PDO $pdo, string $connection, string $database): void
+    {
+        $sql = match ($connection) {
+            'mysql' => "CREATE DATABASE `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+            'pgsql' => "CREATE DATABASE \"{$database}\"",
+            'sqlsrv' => "CREATE DATABASE [{$database}]",
+            default => null,
+        };
+
+        if ($sql) {
+            $pdo->exec($sql);
+        }
+    }
+
+    private function friendlyErrorMessage(PDOException $e, string $connection, string $host, string $port): string
+    {
+        $code = (int) $e->getCode();
+
+        if (isset(self::PDO_ERROR_MESSAGES[$code])) {
+            $message = self::PDO_ERROR_MESSAGES[$code];
+        } else {
+            $message = 'Database connection failed. Please verify your settings and try again.';
+        }
+
+        return $message;
     }
 }
