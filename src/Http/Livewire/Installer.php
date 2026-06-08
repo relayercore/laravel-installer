@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace RelayerCore\LaravelInstaller\Http\Livewire;
 
 use Exception;
@@ -8,6 +10,7 @@ use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
+use RelayerCore\LaravelInstaller\Contracts\InstallationStateManager;
 use RelayerCore\LaravelInstaller\Contracts\ModuleActivator;
 use RelayerCore\LaravelInstaller\Services\StepManager;
 
@@ -27,14 +30,19 @@ class Installer extends Component
         'host' => '127.0.0.1',
         'port' => '3306',
         'connection' => 'mysql',
-        'database' => '',
+        'database' => 'bookflow',
         'username' => 'root',
         'password' => '',
+        'timezone' => 'UTC',
+        'currency' => 'USD',
+        'load_demo_data' => true,
     ];
     public array $errorBag = [];
     public bool $loading = false;
     public array $logs = [];
     public ?array $testConnectionResult = null;
+
+    protected const SESSION_KEY = 'installer.progress';
 
     protected StepManager $stepManager;
 
@@ -58,17 +66,40 @@ class Installer extends Component
             return;
         }
 
-        // Initialize currentStepId to the first unskipped registered step
+        // Resume from last completed step on mid-install refresh
+        $progress = session()->get(self::SESSION_KEY, []);
         $steps = $this->stepManager->getSteps(false);
-        if (!empty($steps)) {
-            $this->currentStepId = array_key_first($steps);
+
+        if (!empty($progress)) {
+            $allStepIds = array_keys($steps);
+            $lastCompleted = $progress[array_key_last($progress)];
+            $lastIndex = array_search($lastCompleted, $allStepIds);
+            $resumeIndex = $lastIndex !== false ? $lastIndex + 1 : 0;
+
+            if (isset($allStepIds[$resumeIndex])) {
+                $this->currentStepId = $allStepIds[$resumeIndex];
+            } else {
+                // All steps completed somehow but the installed file is missing
+                $this->currentStepId = array_key_first($steps);
+            }
+        } else {
+            // Initialize currentStepId to the first unskipped registered step
+            if (!empty($steps)) {
+                $this->currentStepId = array_key_first($steps);
+            }
         }
 
         // Initialize default state values for any extra environment fields
         foreach (config('installer.environment_fields', []) as $envKey => $fieldConfig) {
             $stateKey = $fieldConfig['state_key'] ?? strtolower($envKey);
             if (!isset($this->state[$stateKey])) {
-                $this->state[$stateKey] = $fieldConfig['default'] ?? '';
+                if ($fieldConfig['type'] === 'checkbox') {
+                    $this->state[$stateKey] = (bool) ($fieldConfig['default'] ?? false);
+                } elseif ($fieldConfig['type'] === 'select') {
+                    $this->state[$stateKey] = $fieldConfig['default'] ?? array_key_first($fieldConfig['options'] ?? []);
+                } else {
+                    $this->state[$stateKey] = $fieldConfig['default'] ?? '';
+                }
             }
         }
     }
@@ -89,11 +120,17 @@ class Installer extends Component
 
             $step->process($this->state);
 
+            // Persist completed step to session for mid-install refresh recovery
+            $progress = session()->get(self::SESSION_KEY, []);
+            $progress[] = $this->currentStepId;
+            session()->put(self::SESSION_KEY, $progress);
+
             // Advance
             $next = $this->stepManager->getNextStep($this->currentStepId);
             if ($next) {
                 Log::info("Installer: Moving to next step [{$next->id()}]");
                 $this->currentStepId = $next->id();
+                $this->dispatch('step-changed');
             } else {
                 Log::info("Installer: No next step, finishing.");
                 $this->finish();
@@ -111,6 +148,7 @@ class Installer extends Component
 
         if ($prev) {
             $this->currentStepId = $prev->id();
+            $this->dispatch('step-changed');
             $this->resetErrorBag();
         }
     }
@@ -124,22 +162,50 @@ class Installer extends Component
         // Only allow navigating to past steps
         if ($targetIndex !== false && $targetIndex < $currentIndex) {
             $this->currentStepId = $stepId;
+            $this->dispatch('step-changed');
             $this->resetErrorBag();
         }
     }
 
     public function finish(): void
     {
+        // Clear previous progress file
+        $progressFile = storage_path('framework/installer-progress.json');
+        if (file_exists($progressFile)) {
+            @unlink($progressFile);
+        }
+
+        // Bind streaming callback — writes to a file for Alpine polling
+        // instead of using Livewire's chunked stream() which causes
+        // Apache/Nginx buffering issues on some environments (like Laragon).
+        app()->instance('installer.stream', function(string $message) use ($progressFile) {
+            // Clean up raw console output into user-friendly messages
+            $clean = preg_replace(
+                ['/^(INFO|WARN|ERROR|DEBUG)\s+/i', '/\s{2,}/', '/^\.+$/'],
+                ['', ' ', ''],
+                trim($message)
+            );
+            if (empty($clean)) return;
+
+            $data = ['messages' => [], 'timestamp' => time()];
+            if (file_exists($progressFile)) {
+                $existing = json_decode(file_get_contents($progressFile), true);
+                $data['messages'] = $existing['messages'] ?? [];
+            }
+            $data['messages'][] = $clean;
+            file_put_contents($progressFile, json_encode($data), LOCK_EX);
+        });
+
         // 1. Activate module/vertical if a ModuleActivator is bound and a vertical was selected
         if (
             isset($this->state['vertical']) &&
-            $this->state['vertical'] !== 'universal' &&
+            $this->state['vertical'] !== 'general' &&
             interface_exists(ModuleActivator::class) &&
             app()->bound(ModuleActivator::class)
         ) {
             try {
                 $activator = app(ModuleActivator::class);
-                $activator->activate($this->state['vertical']);
+                $activator->activate($this->state['vertical'], $this->state);
                 Log::info("Installer: Activated vertical [{$this->state['vertical']}] via ModuleActivator.");
             } catch (Exception $e) {
                 // Don't fail the install, but log it
@@ -152,28 +218,32 @@ class Installer extends Component
         if (is_string($afterInstallClass) && class_exists($afterInstallClass)) {
             $afterInstall = app($afterInstallClass);
             if (is_callable($afterInstall)) {
-                $afterInstall();
+                $afterInstall($this->state);
             }
         }
 
         // 3. Regenerate the App Key (Security Best Practice)
-        Artisan::call('key:generate', ['--force' => true]);
+        // Defer to terminating() because key:generate modifies .env and restarts `php artisan serve`
+        app()->terminating(function () {
+            Artisan::call('key:generate', ['--force' => true]);
+        });
 
-        // 4. Mark installed
-        $installedFile = config('installer.installed_file', storage_path('installed'));
-        file_put_contents($installedFile, now());
+        // 4. Clear install progress from session
+        session()->forget(self::SESSION_KEY);
 
-        // 5. Redirect
+        // 5. Mark installed using the configured state manager
+        app(InstallationStateManager::class)->markInstalled();
+
+        // 6. Dispatch success event for confetti and UI update
         $redirect = config('installer.redirect_after_install', '/admin');
 
         $this->dispatch('installer-finishing');
-
-        redirect($redirect);
+        $this->dispatch('installation-success', ['redirectUrl' => $redirect]);
     }
 
     protected function isInstalled(): bool
     {
-        return file_exists(config('installer.installed_file', storage_path('installed')));
+        return app(InstallationStateManager::class)->isInstalled();
     }
 
     public function testDatabase(): void
