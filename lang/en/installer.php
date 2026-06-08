@@ -26,7 +26,10 @@ return [
     'requirements_passed_label' => 'Passed',
     'requirements_failed_label' => 'Action Required',
     'requirements_all_passed' => 'All requirements passed! Click Continue to proceed.',
-    'requirements_action_needed' => 'Action Required: Please resolve the failed requirements before continuing.',
+    'requirements_action_needed' => 'Action Required: Please install the missing PHP extensions or increase the limits above, then refresh this page.',
+    'requirements_fix_php' => 'Update to PHP :version or later, or contact your hosting provider.',
+    'requirements_fix_extension' => 'Install or enable the PHP ":name" extension (e.g. apt install php-:name).',
+    'requirements_fix_memory' => 'Increase memory_limit in your php.ini file (currently :current, need :min).',
 
     /*
     |--------------------------------------------------------------------------
@@ -98,6 +101,9 @@ return [
     'admin_password_placeholder' => 'Min. 8 characters',
     'admin_password_confirm' => 'Confirm Password',
     'admin_password_confirm_placeholder' => 'Repeat password',
+    'admin_error_email_required' => 'An email address is required.',
+    'admin_error_password_required' => 'A password is required.',
+    'admin_error_password_mismatch' => 'The passwords do not match.',
 
     /*
     |--------------------------------------------------------------------------

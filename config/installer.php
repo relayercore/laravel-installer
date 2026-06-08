@@ -27,15 +27,22 @@ return [
         'extensions' => [
             'bcmath',
             'ctype',
+            'curl',
+            'dom',
             'fileinfo',
+            'gd',
             'json',
             'mbstring',
             'openssl',
+            'pcre',
             'pdo',
             'pdo_mysql',
             'tokenizer',
             'xml',
+            'zip',
         ],
+        'memory_limit' => '128M',
+        'opcache' => true,
     ],
 
     /*
