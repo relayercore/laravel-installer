@@ -1,18 +1,19 @@
 <div class="mb-6">
-    <h3 class="text-2xl font-bold text-slate-900">{{ __('installer::installer.environment_title') }}</h3>
-    <p class="text-slate-500 mt-2">{{ __('installer::installer.environment_subtitle') }}</p>
+    <h3 class="section-title">{{ __('installer::installer.environment_title') }}</h3>
+    <p class="section-subtitle">{{ __('installer::installer.environment_subtitle') }}</p>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="form-grid">
     <div class="col-span-full">
-        <label class="block text-sm font-semibold text-slate-700 mb-2">{{ __('installer::installer.environment_connection_type') }}</label>
+        <label class="form-label">{{ __('installer::installer.environment_connection_type') }}</label>
         <select wire:model.live="state.connection"
             x-on:change="
-                const port = { mysql: '3306', pgsql: '5432', sqlsrv: '1433', sqlite: '' };
+                const port = { mysql: '3306', mariadb: '3306', pgsql: '5432', sqlsrv: '1433', sqlite: '' };
                 $wire.state.port = port[$event.target.value] || '3306';
             "
-            class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all shadow-sm">
-            <option value="mysql">MySQL / MariaDB</option>
+            class="form-select">
+            <option value="mysql">MySQL</option>
+            <option value="mariadb">MariaDB</option>
             <option value="pgsql">PostgreSQL</option>
             <option value="sqlite">SQLite</option>
             <option value="sqlsrv">SQL Server</option>
@@ -21,40 +22,40 @@
 
     @if(($state['connection'] ?? 'mysql') !== 'sqlite')
     <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">{{ __('installer::installer.environment_host') }}</label>
-        <input type="text" wire:model="state.host" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all shadow-sm" placeholder="127.0.0.1">
+        <label class="form-label">{{ __('installer::installer.environment_host') }}</label>
+        <input type="text" wire:model="state.host" class="form-input" placeholder="127.0.0.1">
     </div>
     <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">{{ __('installer::installer.environment_port') }}</label>
-        <input type="text" wire:model="state.port" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all shadow-sm" placeholder="3306">
+        <label class="form-label">{{ __('installer::installer.environment_port') }}</label>
+        <input type="text" wire:model="state.port" class="form-input" placeholder="3306">
     </div>
     @endif
 
     <div class="col-span-full">
-        <label class="block text-sm font-semibold text-slate-700 mb-2">{{ __('installer::installer.environment_database_name') }}</label>
-        <div class="relative">
-            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <label class="form-label">{{ __('installer::installer.environment_database_name') }}</label>
+        <div class="form-input-wrapper">
+            <div class="form-input-icon">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
                 </svg>
             </div>
-            <input type="text" wire:model="state.database" class="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all shadow-sm" placeholder="laravel_app">
+            <input type="text" wire:model="state.database" class="form-input form-input--with-icon" placeholder="bookflow">
         </div>
-        <p class="text-xs text-slate-500 mt-1">{{ __('installer::installer.environment_database_hint') }}</p>
+        <p class="form-hint">{{ __('installer::installer.environment_database_hint') }}</p>
     </div>
 
     @if(($state['connection'] ?? 'mysql') !== 'sqlite')
     <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">{{ __('installer::installer.environment_username') }}</label>
-        <input type="text" wire:model="state.username" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all shadow-sm" placeholder="root">
+        <label class="form-label">{{ __('installer::installer.environment_username') }}</label>
+        <input type="text" wire:model="state.username" class="form-input" placeholder="root">
     </div>
     <div>
-        <label class="block text-sm font-semibold text-slate-700 mb-2">{{ __('installer::installer.environment_password') }}</label>
-        <input type="password" wire:model="state.password" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all shadow-sm" placeholder="• • • • • • • •">
+        <label class="form-label">{{ __('installer::installer.environment_password') }}</label>
+        <input type="password" wire:model="state.password" class="form-input" placeholder="• • • • • • • •">
     </div>
     @endif
 
-    {{-- Dynamic Extra Environment Fields (from host app config) --}}
+    {{-- Dynamic Extra Environment Fields --}}
     @foreach(config('installer.environment_fields', []) as $envKey => $fieldConfig)
         @php
             $stateKey = $fieldConfig['state_key'] ?? strtolower($envKey);
@@ -64,45 +65,53 @@
         @endphp
 
         @if($type === 'checkbox')
-            <div class="col-span-full border-t border-slate-200 pt-6 mt-2">
-                <label class="flex items-start gap-4 cursor-pointer group">
-                    <div class="flex items-center h-6">
-                        <input type="checkbox" wire:model.live="state.{{ $stateKey }}" class="h-5 w-5 rounded-lg border-slate-300 text-indigo-600 focus:ring-indigo-600 transition-all">
-                    </div>
-                    <div class="flex-1">
-                        <span class="font-semibold text-slate-900 block group-hover:text-indigo-600 transition-colors">{{ $label }}</span>
+            <div class="col-span-full" style="border-top: 1px solid var(--color-border); padding-top: 1.5rem; margin-top: 0.5rem;">
+                <label class="toggle-label">
+                    <input type="checkbox" wire:model.live="state.{{ $stateKey }}" class="toggle-input">
+                    <div>
+                        <span class="toggle-text">{{ $label }}</span>
                         @if($description)
-                            <span class="text-slate-500 text-sm leading-relaxed mt-1 block">{{ $description }}</span>
+                            <span class="toggle-desc">{{ $description }}</span>
                         @endif
                     </div>
                 </label>
             </div>
+        @elseif($type === 'select')
+            <div class="{{ ($type === 'textarea') ? 'col-span-full' : '' }}">
+                <label class="form-label">{{ $label }}</label>
+                <select wire:model="state.{{ $stateKey }}" class="form-select">
+                    @foreach($fieldConfig['options'] as $value => $optionLabel)
+                        <option value="{{ $value }}">{{ $optionLabel }}</option>
+                    @endforeach
+                </select>
+                @if($description)
+                    <p class="form-hint">{{ $description }}</p>
+                @endif
+            </div>
         @else
             <div class="{{ ($type === 'textarea') ? 'col-span-full' : '' }}">
-                <label class="block text-sm font-semibold text-slate-700 mb-2">{{ $label }}</label>
-                <input type="{{ $type }}" wire:model="state.{{ $stateKey }}" class="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all shadow-sm" placeholder="{{ $fieldConfig['placeholder'] ?? '' }}">
+                <label class="form-label">{{ $label }}</label>
+                <input type="{{ $type }}" wire:model="state.{{ $stateKey }}" class="form-input" placeholder="{{ $fieldConfig['placeholder'] ?? '' }}">
                 @if($description)
-                    <p class="text-xs text-slate-500 mt-1">{{ $description }}</p>
+                    <p class="form-hint">{{ $description }}</p>
                 @endif
             </div>
         @endif
     @endforeach
 
-    <div class="col-span-full pt-4">
-        <div class="flex items-center gap-4">
-            <button type="button" wire:click="testDatabase" wire:loading.attr="disabled" class="text-sm font-semibold text-slate-700 hover:text-slate-900 underline decoration-slate-300 hover:decoration-slate-900 underline-offset-4 transition-all cursor-pointer">
-                <span wire:loading.remove wire:target="testDatabase">{{ __('installer::installer.environment_test_connection') }}</span>
-                <span wire:loading wire:target="testDatabase">{{ __('installer::installer.environment_testing') }}</span>
-            </button>
-        </div>
+    <div class="col-span-full" style="padding-top: 1rem;">
+        <button type="button" wire:click="testDatabase" wire:loading.attr="disabled" class="test-connection-btn">
+            <span wire:loading.remove wire:target="testDatabase">{{ __('installer::installer.environment_test_connection') }}</span>
+            <span wire:loading wire:target="testDatabase">{{ __('installer::installer.environment_testing') }}</span>
+        </button>
 
         @if($testConnectionResult)
-            <div class="mt-4 p-4 rounded-xl {{ $testConnectionResult['success'] ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700' }} text-sm font-medium flex items-start gap-3">
-                <div class="flex-shrink-0 mt-0.5">
+            <div class="test-connection-result {{ $testConnectionResult['success'] ? 'msg-box--test-pass' : 'msg-box--test-fail' }}">
+                <div class="flex-shrink-0">
                     @if($testConnectionResult['success'])
-                        <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
                     @else
-                        <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     @endif
                 </div>
                 <span>{{ $testConnectionResult['message'] }}</span>

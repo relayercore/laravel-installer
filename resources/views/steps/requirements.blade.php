@@ -1,41 +1,58 @@
-<div class="mb-4">
-    <h3 class="text-2xl font-bold text-slate-900">{{ __('installer::installer.requirements_title') }}</h3>
-    <p class="text-slate-500 mt-2">{{ __('installer::installer.requirements_subtitle') }}</p>
+<div class="mb-6">
+    <h3 class="section-title">{{ __('installer::installer.requirements_title') }}</h3>
+    <p class="section-subtitle">{{ __('installer::installer.requirements_subtitle') }}</p>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+<div class="check-grid">
     @php $requirements = $step->check(); @endphp
     @foreach($requirements as $requirement => $passed)
-        <div class="flex items-center p-4 rounded-xl border transition-all duration-200 {{ $passed ? 'bg-white border-slate-200 shadow-sm' : 'bg-red-50 border-red-200' }}">
-            <div class="flex-shrink-0">
+        @php
+            $fixHint = '';
+            if (! $passed) {
+                if (str_starts_with($requirement, 'PHP')) {
+                    preg_match('/[\d.]+/', $requirement, $m);
+                    $fixHint = __('installer::installer.requirements_fix_php', ['version' => $m[0] ?? '']);
+                } elseif (str_contains($requirement, 'Extension')) {
+                    $extName = strtolower(str_replace(' Extension', '', $requirement));
+                    $fixHint = __('installer::installer.requirements_fix_extension', ['name' => $extName]);
+                } elseif (str_contains($requirement, 'Memory')) {
+                    preg_match('/[\d.]+[MG]/', $requirement, $min);
+                    $fixHint = __('installer::installer.requirements_fix_memory', [
+                        'min' => $min[0] ?? '',
+                        'current' => ini_get('memory_limit'),
+                    ]);
+                }
+            }
+        @endphp
+        <div class="check-item {{ $passed ? 'check-item--pass' : 'check-item--fail' }}">
+            <div class="check-icon {{ $passed ? 'check-icon--pass' : 'check-icon--fail' }}">
                 @if($passed)
-                    <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                    </div>
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
                 @else
-                    <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </div>
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                 @endif
             </div>
-            <div class="ml-4">
-                <p class="text-sm font-semibold {{ $passed ? 'text-slate-700' : 'text-red-700' }}">{{ $requirement }}</p>
-                <p class="text-xs {{ $passed ? 'text-slate-400' : 'text-red-500' }}">{{ $passed ? __('installer::installer.requirements_passed_label') : __('installer::installer.requirements_failed_label') }}</p>
+            <div class="check-info">
+                <p class="check-label">{{ $requirement }}</p>
+                <p class="check-status">{{ $passed ? __('installer::installer.requirements_passed_label') : __('installer::installer.requirements_failed_label') }}</p>
+                @if ($fixHint)
+                    <p class="check-hint">{{ $fixHint }}</p>
+                @endif
             </div>
         </div>
     @endforeach
 </div>
 
 @if(!in_array(false, $requirements))
-    <div class="mt-6 p-4 bg-green-100 text-green-700 rounded-lg">
+    <div class="msg-box msg-box--success">
         <strong>{{ __('installer::installer.requirements_all_passed') }}</strong>
     </div>
 @else
-    <div class="mt-6 p-4 bg-red-100 text-red-700 rounded-lg">
+    <div class="msg-box msg-box--error">
         <strong>{{ __('installer::installer.requirements_action_needed') }}</strong>
     </div>
 @endif
