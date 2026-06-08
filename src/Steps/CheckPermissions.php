@@ -40,7 +40,13 @@ class CheckPermissions implements InstallerStep
 
     public function process(array $data = []): void
     {
-        // No side effects
+        // Create any missing directories
+        foreach (config('installer.writable_directories', []) as $dir) {
+            $path = base_path($dir);
+            if (!is_dir($path)) {
+                @mkdir($path, 0755, true);
+            }
+        }
     }
 
     public function check(): array
@@ -50,11 +56,14 @@ class CheckPermissions implements InstallerStep
 
         foreach (config('installer.writable_directories', []) as $dir) {
             $path = base_path($dir);
-            if (!file_exists($path)) {
-                $results[$dir] = false;
-                continue;
+
+            // Attempt to create missing directories so the installer
+            // can proceed without requiring manual mkdir.
+            if (!is_dir($path)) {
+                @mkdir($path, 0755, true);
             }
-            $results[$dir] = is_writable($path);
+
+            $results[$dir] = is_dir($path) && is_writable($path);
         }
 
         return $results;

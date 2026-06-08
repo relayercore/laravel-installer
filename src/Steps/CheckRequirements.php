@@ -60,6 +60,33 @@ class CheckRequirements implements InstallerStep
             $results[ucfirst($ext) . ' Extension'] = extension_loaded($ext);
         }
 
+        // Check memory limit
+        $minMemory = config('installer.requirements.memory_limit', '128M');
+        $memoryBytes = $this->memoryInBytes(ini_get('memory_limit'));
+        $minBytes = $this->memoryInBytes($minMemory);
+        $results["Memory Limit >= {$minMemory}"] = $memoryBytes >= $minBytes;
+
+        // Check opcache
+        $opcacheRequired = config('installer.requirements.opcache', false);
+        if ($opcacheRequired) {
+            $status = function_exists('opcache_get_status') ? opcache_get_status(false) : false;
+            $results['OPcache Enabled'] = is_array($status) && ($status['opcache_enabled'] ?? false);
+        }
+
         return $results;
+    }
+
+    protected function memoryInBytes(string $value): int
+    {
+        $value = strtolower(trim($value));
+        $unit = substr($value, -1);
+        $size = (int) $value;
+
+        return match ($unit) {
+            'g' => $size * 1024 * 1024 * 1024,
+            'm' => $size * 1024 * 1024,
+            'k' => $size * 1024,
+            default => $size,
+        };
     }
 }

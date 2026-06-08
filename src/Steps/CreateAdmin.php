@@ -38,7 +38,19 @@ class CreateAdmin implements InstallerStep
 
     public function validate(array $data = []): bool
     {
-        return !empty($data['email']) && !empty($data['password']);
+        if (empty($data['email'])) {
+            throw new \InvalidArgumentException(__('installer::installer.admin_error_email_required'));
+        }
+
+        if (empty($data['password'])) {
+            throw new \InvalidArgumentException(__('installer::installer.admin_error_password_required'));
+        }
+
+        if (!isset($data['password_confirmation']) || $data['password'] !== $data['password_confirmation']) {
+            throw new \InvalidArgumentException(__('installer::installer.admin_error_password_mismatch'));
+        }
+
+        return true;
     }
 
     public function process(array $data = []): void

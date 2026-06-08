@@ -47,14 +47,25 @@ class RunMigrations implements InstallerStep
         ini_set('memory_limit', '-1');
         set_time_limit(300);
 
+        // Switch to array cache during migration to avoid "cache does not
+        // support tagging" errors from observers and service providers that
+        // call Cache::tags() (the array store supports tags; file/database do not).
+        $originalDriver = config('cache.default');
+        config(['cache.default' => 'array']);
+
         try {
             Artisan::call('migrate', ['--force' => true]);
 
-            if (!empty($data['load_demo_data'])) {
-                $seederClass = config('installer.seeder', 'DatabaseSeeder');
-                Artisan::call('db:seed', ['--class' => $seederClass, '--force' => true]);
-            }
+            // Always run core seeder first
+            $coreSeederClass = config('installer.seeder', 'DatabaseSeeder');
+            Artisan::call('db:seed', ['--class' => $coreSeederClass, '--force' => true]);
+
+            // Demo seeder is now handled after vertical selection
+            // in the AfterInstall callback — no longer runs here.
+
+            config(['cache.default' => $originalDriver]);
         } catch (Exception $e) {
+            config(['cache.default' => $originalDriver]);
             Artisan::call('db:wipe', ['--force' => true]);
 
             Log::error('Installer migration failed', [

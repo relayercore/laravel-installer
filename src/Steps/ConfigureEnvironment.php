@@ -66,11 +66,22 @@ class ConfigureEnvironment implements InstallerStep
 
     public function process(array $data = []): void
     {
+        $connection = $data['connection'] ?? 'mysql';
+        $database = $data['database'] ?? 'laravel';
+        
+        if ($connection === 'sqlite') {
+            if ($database === 'laravel' || $database === 'laravel_app' || empty($database)) {
+                $database = database_path('database.sqlite');
+            } elseif (!str_starts_with($database, '/') && !preg_match('/^[a-zA-Z]:\\\\/', $database)) {
+                $database = database_path(basename($database));
+            }
+        }
+
         $envValues = [
-            'DB_CONNECTION' => $data['connection'] ?? 'mysql',
+            'DB_CONNECTION' => $connection,
             'DB_HOST' => $data['host'] ?? '127.0.0.1',
             'DB_PORT' => $data['port'] ?? '3306',
-            'DB_DATABASE' => $data['database'] ?? 'laravel',
+            'DB_DATABASE' => $database,
             'DB_USERNAME' => $data['username'] ?? 'root',
             'DB_PASSWORD' => $data['password'] ?? '',
         ];
@@ -131,13 +142,21 @@ class ConfigureEnvironment implements InstallerStep
 
     private function createPdo(string $connection, string $host, string $port, string $database, string $username, string $password): PDO
     {
-        $dsn = match ($connection) {
-            'mysql' => "mysql:host={$host};port={$port};charset=utf8mb4",
-            'pgsql' => "pgsql:host={$host};port={$port};dbname={$database}",
-            'sqlsrv' => "sqlsrv:Server={$host},{$port};Database={$database}",
-            'sqlite' => 'sqlite:' . database_path('database.sqlite'),
-            default => "{$connection}:host={$host};port={$port}",
-        };
+        if ($connection === 'sqlite') {
+            if ($database === 'laravel' || $database === 'laravel_app' || empty($database)) {
+                $database = database_path('database.sqlite');
+            } elseif (!str_starts_with($database, '/') && !preg_match('/^[a-zA-Z]:\\\\/', $database)) {
+                $database = database_path(basename($database));
+            }
+            $dsn = 'sqlite:' . $database;
+        } else {
+            $dsn = match ($connection) {
+                'mysql', 'mariadb' => "mysql:host={$host};port={$port};charset=utf8mb4",
+                'pgsql' => "pgsql:host={$host};port={$port};dbname={$database}",
+                'sqlsrv' => "sqlsrv:Server={$host},{$port};Database={$database}",
+                default => "{$connection}:host={$host};port={$port}",
+            };
+        }
 
         return new PDO($dsn, $username, $password);
     }
@@ -145,7 +164,7 @@ class ConfigureEnvironment implements InstallerStep
     private function ensureDatabaseExists(PDO $pdo, string $connection, string $database): void
     {
         $exists = match ($connection) {
-            'mysql' => $this->mysqlDatabaseExists($pdo, $database),
+            'mysql', 'mariadb' => $this->mysqlDatabaseExists($pdo, $database),
             'pgsql' => $this->pgsqlDatabaseExists($pdo, $database),
             'sqlsrv' => $this->sqlsrvDatabaseExists($pdo, $database),
             default => true,
@@ -183,7 +202,7 @@ class ConfigureEnvironment implements InstallerStep
     private function createDatabase(PDO $pdo, string $connection, string $database): void
     {
         $sql = match ($connection) {
-            'mysql' => "CREATE DATABASE `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
+            'mysql', 'mariadb' => "CREATE DATABASE `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci",
             'pgsql' => "CREATE DATABASE \"{$database}\"",
             'sqlsrv' => "CREATE DATABASE [{$database}]",
             default => null,

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace RelayerCore\LaravelInstaller\Services;
 
 use RelayerCore\LaravelInstaller\Contracts\InstallerStep;
