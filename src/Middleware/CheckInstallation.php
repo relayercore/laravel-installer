@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace RelayerCore\LaravelInstaller\Middleware;
 
 use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use RelayerCore\LaravelInstaller\Contracts\InstallationStateManager;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -26,12 +29,6 @@ class CheckInstallation
     protected array $exceptRoutes = [
         'install',
         'install/*',
-        'livewire/*',
-        'livewire/livewire.js',
-        'livewire/livewire.min.js',
-        'livewire/preview-file/*',
-        'livewire/upload-file',
-        'livewire/message/*',
     ];
 
     /**
@@ -39,14 +36,15 @@ class CheckInstallation
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Use file_exists directly for performance (avoid facades in middleware)
-        $installedFile = config('installer.installed_file') ?? storage_path('installed');
-        $isInstalled = file_exists($installedFile);
+        $isInstalled = app(InstallationStateManager::class)->isInstalled();
 
         // If not installed, only allow access to install routes
         if (!$isInstalled) {
             $path = $request->path();
-            if (str_contains($path, 'livewire') || $request->is('*livewire*')) {
+            // Livewire 3 registers routes under a versioned hash prefix
+            // (e.g. livewire-782928e6/update) so we match any path that
+            // starts with 'livewire' rather than relying on exact patterns.
+            if (str_starts_with($path, 'livewire')) {
                 return $next($request);
             }
 
