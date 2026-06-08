@@ -5,9 +5,11 @@ namespace RelayerCore\LaravelInstaller;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use RelayerCore\LaravelInstaller\Contracts\EnvironmentWriter;
+use RelayerCore\LaravelInstaller\Contracts\InstallationStateManager;
 use RelayerCore\LaravelInstaller\Contracts\InstallerStep;
 use RelayerCore\LaravelInstaller\Http\Livewire\Installer;
 use RelayerCore\LaravelInstaller\Services\DotEnvWriter;
+use RelayerCore\LaravelInstaller\Services\FileInstallationStateManager;
 use RelayerCore\LaravelInstaller\Services\StepManager;
 
 /**
@@ -27,6 +29,9 @@ class InstallerServiceProvider extends ServiceProvider
         // Register core services
         $this->app->bind(EnvironmentWriter::class, DotEnvWriter::class);
 
+        // Bind default InstallationStateManager (can be overridden by host app)
+        $this->app->bindIf(InstallationStateManager::class, FileInstallationStateManager::class);
+
         // StepManager is a singleton so every consumer sees the same registered steps
         $this->app->singleton(StepManager::class);
 
@@ -35,27 +40,26 @@ class InstallerServiceProvider extends ServiceProvider
     }
 
     /**
-     * Check installation status very early and set a flag.
-     * This prevents database errors in other service providers.
+     * Bind the dynamic installation check.
+     * This defers execution so the host application can override the InstallationStateManager
+     * before the installation status is evaluated.
      */
     protected function earlyInstallationCheck(): void
     {
-        $installedFile = config('installer.installed_file') ?? storage_path('installed');
-        $isInstalled = file_exists($installedFile);
-
-        // Store installation status in app container for other providers to check
-        $this->app->instance('installer.is_installed', $isInstalled);
-
-        // Force Debug Mode if not installed
-        // This ensures Livewire assets (non-minified) load correctly
-        // even if the user's default config has debug=false.
-        if (!$isInstalled) {
-            config(['app.debug' => true]);
-        }
+        $this->app->bind('installer.is_installed', function ($app) {
+            return $app->make(InstallationStateManager::class)->isInstalled();
+        });
     }
 
     public function boot(): void
     {
+        // Force Debug Mode if not installed.
+        // Doing this in boot() ensures that the host app's AppServiceProvider has had
+        // a chance to override the InstallationStateManager.
+        if (!$this->app->make('installer.is_installed')) {
+            config(['app.debug' => true]);
+        }
+
         // Publish config
         $this->publishes([
             __DIR__ . '/../config/installer.php' => config_path('installer.php'),
@@ -70,6 +74,11 @@ class InstallerServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/../lang' => $this->app->langPath('vendor/installer'),
         ], 'installer-lang');
+
+        // Publish CSS assets
+        $this->publishes([
+            __DIR__ . '/../resources/css/installer.css' => public_path('vendor/installer/installer.css'),
+        ], 'installer-assets');
 
         // Load views
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'installer');
