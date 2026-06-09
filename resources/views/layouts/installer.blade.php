@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ __('installer::installer.title', ['name' => config('installer.name', 'App')]) }}</title>
     <link rel="icon" type="image/png" href="{{ config('installer.favicon', asset('favicon.png')) }}">
-    <link rel="stylesheet" href="{{ asset('vendor/installer/installer.css') }}">
+    <link rel="stylesheet" href="{{ asset('installer/installer.css') }}">
     <style>
         :root {
             --theme-primary: {{ config('installer.theme.primary', '#6366f1') }};

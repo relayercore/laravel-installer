@@ -77,7 +77,7 @@ class InstallerServiceProvider extends ServiceProvider
 
         // Publish CSS assets
         $this->publishes([
-            __DIR__ . '/../resources/css/installer.css' => public_path('vendor/installer/installer.css'),
+            __DIR__ . '/../resources/css/installer.css' => public_path('installer/installer.css'),
         ], 'installer-assets');
 
         // Load views
