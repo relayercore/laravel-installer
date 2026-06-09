@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/relayercore/laravel-installer/actions/workflows/tests.yml/badge.svg)](https://github.com/relayercore/laravel-installer/actions/workflows/tests.yml)
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-8892BF.svg)](https://php.net/)
-[![Laravel Version](https://img.shields.io/badge/laravel-10%20%7C%2011%20%7C%2012-FF2D20.svg)](https://laravel.com)
+[![Laravel Version](https://img.shields.io/badge/laravel-10%20%7C%2011%20%7C%2012%20%7C%2013-FF2D20.svg)](https://laravel.com)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A beautiful, reusable, and highly customizable web-based installer wizard for Laravel applications. Drop it into any project to provide a professional onboarding experience for your users — zero bloat, maximum flexibility.
@@ -19,7 +19,26 @@ A beautiful, reusable, and highly customizable web-based installer wizard for La
 - 🌐 **Localization (i18n)** — 100% of the UI strings are translatable.
 - 🔌 **Dynamic `.env` Injection** — Easily prompt users for custom environment variables during the database setup step.
 - 🛡️ **Secure** — Automatically runs `key:generate` and protects your app with API-friendly 503 middleware until installation is complete.
-- 🔄 **Forward Compatible** — Works flawlessly with Laravel 10, 11, 12 & 13.
+- 🔄 **Forward Compatible** — Works flawlessly with Laravel 10–13.
+
+---
+
+## Requirements
+
+| PHP | Laravel | Status |
+|-----|---------|--------|
+| 8.2 | 10.* | ✅ Tested |
+| 8.2 | 11.* | ✅ Tested |
+| 8.3 | 10.* | ✅ Tested |
+| 8.3 | 11.* | ✅ Tested |
+| 8.3 | 12.* | ✅ Tested |
+| 8.3 | 13.* | ✅ Tested |
+| 8.4 | 10.* | ✅ Tested |
+| 8.4 | 11.* | ✅ Tested |
+| 8.4 | 12.* | ✅ Tested |
+| 8.4 | 13.* | ✅ Tested |
+
+> PHP 8.2 is **not** compatible with Laravel 12 or 13 (those require PHP 8.3+).
 
 ---
 
